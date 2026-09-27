@@ -1,0 +1,125 @@
+---
+/**
+ * One case study from the `portfolio` collection. Not published yet: this
+ * file sits outside src/pages/, so Astro builds no route for it. README.md
+ * explains how to publish the first entry.
+ */
+import { Icon } from 'astro-icon/components';
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { type Lang, localePath } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  entry: CollectionEntry<'portfolio'>;
+}
+
+const { lang, entry } = Astro.props;
+const { Content } = await render(entry);
+const p = entry.data;
+
+const copy = {
+  en: {
+    client: 'Client',
+    year: 'Year',
+    kind: 'Work',
+    stack: 'Built with',
+    visit: 'See it live',
+    kinds: { web: 'Web app', app: 'Mobile app', ai: 'AI solution', automation: 'Workflow automation' },
+    next: 'Have a project like this?',
+    contact: 'Tell us about it',
+  },
+  id: {
+    client: 'Klien',
+    year: 'Tahun',
+    kind: 'Pekerjaan',
+    stack: 'Dibangun dengan',
+    visit: 'Lihat hasilnya',
+    kinds: { web: 'Aplikasi web', app: 'Aplikasi mobile', ai: 'Solusi AI', automation: 'Otomasi alur kerja' },
+    next: 'Punya proyek serupa?',
+    contact: 'Ceritakan kepada kami',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={p.title} description={p.summary}>
+  <article>
+    <header>
+      <h1>{p.title}</h1>
+      <p class="summary">{p.summary}</p>
+      <dl>
+        <div><dt>{copy.client}</dt><dd>{p.client}</dd></div>
+        <div><dt>{copy.year}</dt><dd>{p.year}</dd></div>
+        <div><dt>{copy.kind}</dt><dd>{copy.kinds[p.kind]}</dd></div>
+        {p.stack.length > 0 && <div><dt>{copy.stack}</dt><dd>{p.stack.join(', ')}</dd></div>}
+      </dl>
+      {p.link && (
+        <a class="go" href={p.link} rel="noopener">
+          {copy.visit}
+          <Icon name="lucide:arrow-up-right" aria-hidden="true" />
+        </a>
+      )}
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <footer>
+      <p>{copy.next}</p>
+      <a class="go" href={localePath(lang, '/contact-us/')}>
+        {copy.contact}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  article {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding: clamp(3rem, 9vh, 6rem) var(--gutter) 2rem;
+  }
+  header {
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
+    padding-bottom: 3rem;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 {
+    max-width: 20ch;
+    font-size: clamp(2.3rem, 5.4vw, 4.4rem);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+  .summary {
+    max-width: 36rem;
+    font-size: 1.1rem;
+    color: var(--text-dim);
+  }
+  dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 3rem;
+    font-size: 0.9rem;
+  }
+  dt { color: var(--text-faint); }
+  .prose { max-width: var(--w-narrow); }
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 1rem 2rem;
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  footer p {
+    font-size: 1.4rem;
+    font-weight: 500;
+  }
+</style>
