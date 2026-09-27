@@ -1,0 +1,112 @@
+/* Design tokens. Every colour on the site is one of these.
+
+   The neutrals start from StarDustWebsite's dark scale, so both sites read as
+   one family. The light theme mirrors that scale step for step (each value is
+   255 minus its dark twin). The two dimmer text steps are the exception,
+   because their mirrors fall below 4.5:1 on the light panels.
+
+   Violet is the one hue, and it carries meaning. It marks the active state,
+   the key line in a diagram, focus, and the closing band on the home page.
+   `--brand` is for text and lines and changes per theme, because #311B92 is
+   too dark to read on a near-black surface, so dark mode uses Material Deep
+   Purple 200 from the same hue. `--brand-fill` is the solid band colour and
+   stays #311B92 in both themes.
+
+   The dark values are declared twice on purpose. The media query covers
+   visitors who never touched the toggle, and `[data-theme="dark"]` covers
+   those who picked dark on a light system. `scripts/verify-contrast.ts` reads
+   the first two blocks below, so keep their shape. */
+
+:root {
+  color-scheme: light;
+
+  --bg:            #f6f6f6;
+  --bg-raised:     #eeeeee;
+  --panel:         #e7e7e7;
+  --panel-2:       #e0e0e0;
+  --border:        #d2d2d2;
+  --border-bright: #c0c0c0;
+  --border-hover:  #acacac;
+
+  --text:       #121212;
+  --text-dim:   #555555;
+  --text-faint: #626262;
+
+  --brand:         #311b92;
+  --brand-soft:    #311b9214;
+  --brand-fill:    #311b92;
+  --on-brand-fill: #ffffff;
+  --on-brand-dim:  #d6cff0;
+
+  --logo-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg:            #090909;
+    --bg-raised:     #111111;
+    --panel:         #181818;
+    --panel-2:       #1f1f1f;
+    --border:        #2d2d2d;
+    --border-bright: #3f3f3f;
+    --border-hover:  #535353;
+
+    --text:       #ededed;
+    --text-dim:   #aaaaaa;
+    --text-faint: #8a8a8a;
+
+    --brand:         #b39ddb;
+    --brand-soft:    #b39ddb1f;
+    --brand-fill:    #311b92;
+    --on-brand-fill: #ffffff;
+    --on-brand-dim:  #d6cff0;
+
+    --logo-filter: invert(1);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:            #090909;
+  --bg-raised:     #111111;
+  --panel:         #181818;
+  --panel-2:       #1f1f1f;
+  --border:        #2d2d2d;
+  --border-bright: #3f3f3f;
+  --border-hover:  #535353;
+
+  --text:       #ededed;
+  --text-dim:   #aaaaaa;
+  --text-faint: #8a8a8a;
+
+  --brand:         #b39ddb;
+  --brand-soft:    #b39ddb1f;
+  --brand-fill:    #311b92;
+  --on-brand-fill: #ffffff;
+  --on-brand-dim:  #d6cff0;
+
+  --logo-filter: invert(1);
+}
+
+:root {
+  --sans: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo,
+          Consolas, "Liberation Mono", monospace;
+
+  /* Widths. Sections pick one on purpose, so the page doesn't settle into a
+     single column rhythm. */
+  --w-narrow: 40rem;
+  --w-text:   52rem;
+  --w-wide:   76rem;
+  --gutter:   clamp(1rem, 4vw, 3rem);
+
+  --radius:    10px;
+  --radius-sm: 6px;
+
+  --ease:     cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

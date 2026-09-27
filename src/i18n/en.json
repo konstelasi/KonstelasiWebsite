@@ -1,0 +1,46 @@
+{
+  "site": {
+    "name": "Konstelasi",
+    "legalName": "PT Konstelasi Teknologi Internasional",
+    "tagline": "Crafting the future",
+    "description": "Konstelasi builds custom software, workflow automation and private AI for businesses, from Yogyakarta, and maintains a set of open-source libraries."
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "about": "About",
+    "labs": "Labs",
+    "contact": "Contact",
+    "menu": "Menu",
+    "skip": "Skip to content"
+  },
+  "theme": {
+    "label": "Colour theme",
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme"
+  },
+  "lang": {
+    "label": "Language",
+    "switchTo": "Baca dalam Bahasa Indonesia",
+    "short": "ID"
+  },
+  "footer": {
+    "location": "Yogyakarta, Indonesia",
+    "elsewhere": "Elsewhere",
+    "policy": "Konstelasi Chat privacy policy",
+    "rights": "All rights reserved."
+  },
+  "status": {
+    "stable": "stable",
+    "ongoing": "ongoing",
+    "pending": "pending"
+  },
+  "common": {
+    "source": "Source",
+    "website": "Website",
+    "readMore": "Read more",
+    "contactUs": "Contact us",
+    "otherServices": "Other services",
+    "allProducts": "Everything in Labs"
+  }
+}

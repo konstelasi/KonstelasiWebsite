@@ -1,0 +1,149 @@
+/* Global rules every page shares. Section-level layout lives in each
+   component's own <style>, so this file stays short. */
+
+@view-transition { navigation: auto; }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+  /* `clip` rather than `hidden`, so the opening constellation can bleed off
+     the right edge without making <body> a scroll container, which would
+     break `position: sticky` further down the page. */
+  overflow-x: clip;
+}
+
+main { flex: 1; }
+
+h1, h2, h3, h4 {
+  margin: 0;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p { margin: 0; text-wrap: pretty; }
+ul, ol, dl, dd, figure, blockquote { margin: 0; padding: 0; }
+img, svg { display: block; max-width: 100%; }
+
+a { color: inherit; text-decoration-color: var(--border-hover); text-underline-offset: 0.2em; }
+a:hover { text-decoration-color: currentColor; }
+
+code, pre, kbd { font-family: var(--mono); font-size: 0.92em; }
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection { background: var(--brand); color: var(--bg); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 20;
+  padding: 0.5rem 0.9rem;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: var(--radius-sm);
+}
+.skip-link:focus { top: 1rem; }
+
+/* The plain text link with an arrow, used instead of button pairs. */
+.go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-hover);
+  padding-bottom: 0.1em;
+  transition: border-color 0.2s var(--ease), gap 0.2s var(--ease);
+}
+.go:hover { border-color: var(--brand); gap: 0.6em; }
+.go svg { width: 1em; height: 1em; flex: none; }
+
+.mono { font-family: var(--mono); }
+
+/* Long-form text from Markdown (blog posts, product pages, the policy). */
+.prose { font-size: 1.0625rem; }
+.prose > * + * { margin-top: 1.1em; }
+.prose h2 { font-size: 1.55rem; margin-top: 2.2em; }
+.prose h3 { font-size: 1.2rem; margin-top: 1.8em; }
+.prose h2 + *, .prose h3 + * { margin-top: 0.6em; }
+.prose ul, .prose ol { padding-left: 1.3em; }
+.prose li + li { margin-top: 0.35em; }
+.prose a { color: var(--brand); }
+.prose strong { font-weight: 600; }
+.prose blockquote {
+  border-left: 2px solid var(--brand);
+  padding-left: 1.1em;
+  color: var(--text-dim);
+}
+.prose pre {
+  padding: 1rem 1.2rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  line-height: 1.55;
+}
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  background: var(--panel);
+  border-radius: 4px;
+}
+.prose table { border-collapse: collapse; width: 100%; font-size: 0.95em; }
+.prose th, .prose td { text-align: left; padding: 0.5em 0.8em 0.5em 0; border-bottom: 1px solid var(--border); }
+
+/* Anything marked `.reveal` settles into place once, when it enters the
+   viewport. `src/scripts/reveal.ts` adds `.is-in`. Without JS, or with reduced
+   motion, the element simply shows. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal {
+    opacity: 0;
+    translate: 0 1.25rem;
+    transition: opacity 0.7s var(--ease-out), translate 0.7s var(--ease-out);
+  }
+  .js .reveal.is-in { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  @view-transition { navigation: none; }
+}

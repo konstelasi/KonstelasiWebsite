@@ -1,0 +1,46 @@
+{
+  "site": {
+    "name": "Konstelasi",
+    "legalName": "PT Konstelasi Teknologi Internasional",
+    "tagline": "Crafting the future",
+    "description": "Konstelasi membangun software custom, otomasi alur kerja, dan AI privat untuk bisnis dari Yogyakarta, sekaligus merawat sejumlah library open source."
+  },
+  "nav": {
+    "label": "Utama",
+    "home": "Beranda",
+    "about": "Tentang",
+    "labs": "Labs",
+    "contact": "Kontak",
+    "menu": "Menu",
+    "skip": "Langsung ke konten"
+  },
+  "theme": {
+    "label": "Tema warna",
+    "toLight": "Ganti ke tema terang",
+    "toDark": "Ganti ke tema gelap"
+  },
+  "lang": {
+    "label": "Bahasa",
+    "switchTo": "Read in English",
+    "short": "EN"
+  },
+  "footer": {
+    "location": "Yogyakarta, Indonesia",
+    "elsewhere": "Ikuti kami",
+    "policy": "Kebijakan privasi Konstelasi Chat",
+    "rights": "Hak cipta dilindungi."
+  },
+  "status": {
+    "stable": "stabil",
+    "ongoing": "berjalan",
+    "pending": "tertunda"
+  },
+  "common": {
+    "source": "Source code",
+    "website": "Situs",
+    "readMore": "Selengkapnya",
+    "contactUs": "Hubungi kami",
+    "otherServices": "Layanan lainnya",
+    "allProducts": "Lihat semua di Labs"
+  }
+}

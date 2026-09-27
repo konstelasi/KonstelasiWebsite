@@ -1,0 +1,287 @@
+---
+import { Icon } from 'astro-icon/components';
+import Logo from './Logo.astro';
+import { type Lang, ui, localePath, basePath, otherLang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const current = basePath(Astro.url.pathname);
+const other = otherLang(lang);
+
+const links = [
+  { path: '/about/', label: t.nav.about },
+  { path: '/labs/', label: t.nav.labs },
+  { path: '/contact-us/', label: t.nav.contact },
+];
+
+// Product pages belong to Labs for the active mark.
+function isActive(path: string): boolean {
+  if (current.startsWith(path)) return true;
+  return path === '/labs/' && current.startsWith('/software/');
+}
+---
+
+<header class="site-header" data-site-header>
+  <a class="brand" href={localePath(lang, '/')}>
+    <Logo size={26} />
+    <span>{t.site.name}</span>
+  </a>
+
+  <button
+    class="menu-toggle"
+    type="button"
+    aria-expanded="false"
+    aria-controls="site-nav"
+    data-menu-toggle
+  >
+    <span>{t.nav.menu}</span>
+    <Icon name="lucide:menu" aria-hidden="true" />
+  </button>
+
+  <nav id="site-nav" class="nav" aria-label={t.nav.label}>
+    <ul>
+      {links.map((l) => (
+        <li>
+          <a
+            href={localePath(lang, l.path)}
+            aria-current={isActive(l.path) ? 'page' : undefined}
+          >{l.label}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+
+  <div class="tools">
+    <a
+      class="tool"
+      href={localePath(other, current)}
+      hreflang={other}
+      lang={other}
+      title={t.lang.switchTo}
+    >
+      <span class="sr-only">{t.lang.switchTo}</span>
+      <span aria-hidden="true">{t.lang.short}</span>
+    </a>
+    <button
+      class="tool"
+      type="button"
+      data-theme-toggle
+      data-label-light={t.theme.toLight}
+      data-label-dark={t.theme.toDark}
+      aria-label={t.theme.label}
+    >
+      <Icon name="lucide:sun" class="i-sun" aria-hidden="true" />
+      <Icon name="lucide:moon" class="i-moon" aria-hidden="true" />
+    </button>
+  </div>
+</header>
+
+<script>
+  // The stored theme is applied before first paint by the inline script in
+  // Base.astro. This handles the click and keeps the button's label honest.
+  const root = document.documentElement;
+  const themeButton = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function effective(): 'light' | 'dark' {
+    const set = root.dataset.theme;
+    if (set === 'light' || set === 'dark') return set;
+    return media.matches ? 'dark' : 'light';
+  }
+
+  function label(): void {
+    if (!themeButton) return;
+    const next = effective() === 'dark' ? themeButton.dataset.labelLight : themeButton.dataset.labelDark;
+    if (next) themeButton.setAttribute('aria-label', next);
+  }
+
+  themeButton?.addEventListener('click', () => {
+    const next = effective() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // Storage can be blocked. The choice then lasts for this page only.
+    }
+    label();
+  });
+  media.addEventListener('change', label);
+  label();
+
+  // Phone menu. Without JS the links show as a wrapped row instead.
+  const header = document.querySelector<HTMLElement>('[data-site-header]');
+  const menuButton = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  function setOpen(open: boolean): void {
+    if (!header || !menuButton) return;
+    header.toggleAttribute('data-open', open);
+    menuButton.setAttribute('aria-expanded', String(open));
+  }
+  menuButton?.addEventListener('click', () => setOpen(!header?.hasAttribute('data-open')));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && header?.hasAttribute('data-open')) {
+      setOpen(false);
+      menuButton?.focus();
+    }
+  });
+</script>
+
+<style>
+  .site-header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 1.6rem;
+    max-width: var(--w-wide);
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.1rem var(--gutter);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-right: auto;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+
+  .nav ul {
+    display: flex;
+    gap: 1.6rem;
+    list-style: none;
+  }
+
+  .nav a {
+    position: relative;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s var(--ease);
+  }
+  .nav a:hover,
+  .nav a[aria-current='page'] {
+    color: var(--text);
+  }
+  .nav a[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.35rem;
+    height: 2px;
+    background: var(--brand);
+  }
+
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-left: 1.2rem;
+    border-left: 1px solid var(--border);
+  }
+
+  .tool,
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.45rem;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    font: 500 0.8rem/1 var(--mono);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+  }
+  .tool:hover,
+  .menu-toggle:hover {
+    color: var(--text);
+    border-color: var(--border-bright);
+  }
+  .tool svg,
+  .menu-toggle svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .menu-toggle { display: none; }
+
+  /* Show the icon of the theme the button would switch to. */
+  .tool :global(.i-sun) { display: none; }
+  :global(:root[data-theme='dark']) .tool :global(.i-sun) { display: block; }
+  :global(:root[data-theme='dark']) .tool :global(.i-moon) { display: none; }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .tool :global(.i-sun) { display: block; }
+    :global(:root:not([data-theme='light'])) .tool :global(.i-moon) { display: none; }
+  }
+
+  @media (max-width: 45.99rem) {
+    .site-header { column-gap: 0.5rem; }
+    .tools {
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    /* No JS: the links wrap onto their own row under the logo. */
+    .nav {
+      order: 3;
+      width: 100%;
+      padding-top: 0.6rem;
+    }
+    .nav ul {
+      flex-wrap: wrap;
+      gap: 0.4rem 1.2rem;
+    }
+
+    :global(.js) .menu-toggle {
+      display: inline-flex;
+      order: 2;
+      border-color: var(--border-bright);
+      color: var(--text);
+      font: 500 0.9rem/1 var(--sans);
+      letter-spacing: 0;
+      padding: 0 0.75rem;
+    }
+    :global(.js) .tools { order: 1; }
+
+    :global(.js) .nav {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      padding: 0.25rem var(--gutter) 1.25rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    :global(.js) .site-header[data-open] .nav { display: block; }
+    :global(.js) .nav ul {
+      flex-direction: column;
+      gap: 0;
+    }
+    :global(.js) .nav a {
+      display: block;
+      padding: 0.75rem 0;
+      font-size: 1.1rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    :global(.js) .nav a[aria-current='page'] { color: var(--brand); }
+    :global(.js) .nav a[aria-current='page']::after { display: none; }
+  }
+</style>

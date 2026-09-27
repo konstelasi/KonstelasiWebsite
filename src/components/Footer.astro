@@ -1,0 +1,131 @@
+---
+import Logo from './Logo.astro';
+import { type Lang, ui, localePath } from '../i18n';
+import { contact } from '../lib/contact';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const year = new Date().getFullYear();
+
+const links = [
+  { path: '/about/', label: t.nav.about },
+  { path: '/labs/', label: t.nav.labs },
+  { path: '/contact-us/', label: t.nav.contact },
+];
+---
+
+<footer class="site-footer">
+  <div class="top">
+    <p class="mark">
+      <Logo size={22} />
+      <span>{t.site.name}</span>
+      <span class="tagline">{t.site.tagline}</span>
+    </p>
+    <address>
+      <a href={`mailto:${contact.email}`}>{contact.email}</a>
+      <a href={contact.phoneHref}>{contact.phoneDisplay}</a>
+      <span>{contact.city}</span>
+    </address>
+  </div>
+
+  <div class="bottom">
+    <nav aria-label={t.nav.label}>
+      {links.map((l) => <a href={localePath(lang, l.path)}>{l.label}</a>)}
+    </nav>
+    <p class="social">
+      <span class="sr-only">{t.footer.elsewhere}</span>
+      {contact.socials.map((s) => <a href={s.href} rel="me noopener">{s.name}</a>)}
+    </p>
+    <p class="legal">
+      <a href={localePath(lang, '/privacy-policy-konstelasi-chat/')}>{t.footer.policy}</a>
+      <span>&copy; {year} {t.site.legalName}</span>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    max-width: var(--w-wide);
+    width: 100%;
+    margin: 0 auto;
+    padding: 4rem var(--gutter) 2rem;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .tagline {
+    margin-left: 0.4rem;
+    padding-left: 0.9rem;
+    border-left: 1px solid var(--border-bright);
+    color: var(--text-faint);
+    font-weight: 400;
+  }
+
+  address {
+    display: grid;
+    justify-items: end;
+    gap: 0.15rem;
+    font-style: normal;
+  }
+  address a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  address a:hover { text-decoration: underline; }
+
+  .bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 2.5rem;
+    padding-top: 1.5rem;
+  }
+  .bottom a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .bottom a:hover { color: var(--text); }
+
+  nav,
+  .social {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
+  }
+
+  .legal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
+    margin-left: auto;
+    color: var(--text-faint);
+  }
+  .legal a { color: var(--text-faint); }
+
+  @media (max-width: 40rem) {
+    address { justify-items: start; }
+    .legal { margin-left: 0; }
+    .tagline { display: none; }
+  }
+</style>
