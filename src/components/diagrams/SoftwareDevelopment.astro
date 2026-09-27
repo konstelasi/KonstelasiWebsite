@@ -1,0 +1,68 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    dashboard: 'Web dashboard',
+    app: 'Android app',
+    core: 'Our core',
+    live: 'live sync, no refresh',
+    caption: 'One system behind both screens. Something done in the app reaches the dashboard straight away, because both read the same data through the same lean core.',
+    label: 'A web dashboard and an Android app both connect to one core, which stores data in MariaDB and syncs through Firebase. A highlighted line runs from the app through the core to the dashboard.',
+  },
+  id: {
+    dashboard: 'Dashboard web',
+    app: 'Aplikasi Android',
+    core: 'Core kami',
+    live: 'sinkron langsung, tanpa refresh',
+    caption: 'Satu sistem di balik dua layar. Apa yang dilakukan di aplikasi langsung sampai ke dashboard, karena keduanya membaca data yang sama lewat core ringan yang sama.',
+    label: 'Dashboard web dan aplikasi Android sama-sama terhubung ke satu core, yang menyimpan data di MariaDB dan menyinkronkannya lewat Firebase. Garis yang disorot berjalan dari aplikasi melalui core ke dashboard.',
+  },
+}[lang];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 300" aria-hidden="true">
+    <g data-step style="--step: 0">
+      <rect class="box" x="30" y="24" width="230" height="130" rx="8" />
+      <line class="grid" x1="30" y1="48" x2="260" y2="48" />
+      <circle class="dot" cx="46" cy="36" r="3" />
+      <circle class="dot" cx="58" cy="36" r="3" />
+      <rect class="box-dash" x="48" y="64" width="90" height="70" rx="4" />
+      <rect class="box-dash" x="150" y="64" width="92" height="30" rx="4" />
+      <rect class="box-dash" x="150" y="104" width="92" height="30" rx="4" />
+      <text class="t" x="30" y="178">{l.dashboard}</text>
+
+      <rect class="box" x="150" y="196" width="70" height="96" rx="12" />
+      <line class="grid" x1="172" y1="206" x2="198" y2="206" />
+      <text class="t" x="136" y="250" text-anchor="end">{l.app}</text>
+    </g>
+
+    <g data-step style="--step: 1">
+      <rect class="box-key" x="340" y="118" width="150" height="64" rx="10" />
+      <text class="t" x="415" y="156" text-anchor="middle">{l.core}</text>
+    </g>
+
+    <g data-step style="--step: 2">
+      <path d="M600 92 v76 a60 14 0 0 0 120 0 v-76" class="box" />
+      <ellipse class="box" cx="660" cy="92" rx="60" ry="14" />
+      <text class="t" x="660" y="150" text-anchor="middle">MariaDB</text>
+      <rect class="box" x="600" y="214" width="120" height="44" rx="8" />
+      <text class="t-dim" x="660" y="241" text-anchor="middle">Firebase</text>
+      <path class="line" d="M490 140 H596" />
+      <path class="line" d="M490 164 C 540 164, 550 236, 600 236" />
+    </g>
+
+    <g data-step style="--step: 3">
+      <path class="line-key" d="M220 244 C 290 244, 300 172, 340 166" />
+      <path class="line-key" d="M340 134 C 300 128, 290 90, 262 90 M268 85 L262 90 L268 95" />
+      <text class="t-key" x="250" y="290">{l.live}</text>
+    </g>
+  </svg>
+</Figure>

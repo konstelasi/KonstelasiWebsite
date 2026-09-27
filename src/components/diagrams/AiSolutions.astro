@@ -1,0 +1,68 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    boundary: 'Your infrastructure',
+    question: 'What is the notice period in the Mitra contract?',
+    docs: 'Your documents',
+    retrieve: 'Retrieval',
+    model: 'Language model',
+    answer: 'Thirty days, clause 12.2.',
+    caption: 'Retrieval-augmented generation. The question first pulls the relevant passages from your own documents, and the model answers from those passages. Nothing leaves the boundary.',
+    label: 'A question enters a boundary marked as your infrastructure. Inside it, retrieval pulls passages from your documents and passes them to a language model, which returns an answer that cites a clause.',
+  },
+  id: {
+    boundary: 'Infrastruktur Anda',
+    question: 'Berapa lama masa pemberitahuan di kontrak Mitra?',
+    docs: 'Dokumen Anda',
+    retrieve: 'Retrieval',
+    model: 'Language model',
+    answer: 'Tiga puluh hari, pasal 12.2.',
+    caption: 'Retrieval-augmented generation. Pertanyaan lebih dulu menarik bagian yang relevan dari dokumen Anda sendiri, lalu model menjawab berdasarkan bagian tersebut. Tidak ada yang keluar dari batas ini.',
+    label: 'Sebuah pertanyaan masuk ke area bertanda infrastruktur Anda. Di dalamnya, retrieval menarik potongan dari dokumen Anda dan meneruskannya ke language model, yang mengembalikan jawaban dengan merujuk sebuah pasal.',
+  },
+}[lang];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 300" aria-hidden="true">
+    <g data-step style="--step: 0">
+      <rect class="box-dash" x="10" y="10" width="780" height="280" rx="14" />
+      <text class="t-faint" x="30" y="36">{l.boundary}</text>
+      <rect class="box" x="30" y="56" width="440" height="40" rx="20" />
+      <text class="t-dim" x="50" y="81">{l.question}</text>
+    </g>
+
+    <g data-step style="--step: 1">
+      <rect class="box" x="58" y="148" width="104" height="120" rx="6" />
+      <rect class="box" x="48" y="158" width="104" height="120" rx="6" />
+      <line class="grid" x1="64" y1="186" x2="136" y2="186" />
+      <line class="grid" x1="64" y1="204" x2="136" y2="204" />
+      <line class="grid" x1="64" y1="222" x2="120" y2="222" />
+      <text class="t-dim" x="100" y="262" text-anchor="middle">{l.docs}</text>
+      <path class="line" d="M275 96 V184" />
+    </g>
+
+    <g data-step style="--step: 2">
+      <rect class="box" x="200" y="184" width="150" height="56" rx="10" />
+      <text class="t" x="275" y="217" text-anchor="middle">{l.retrieve}</text>
+      <path class="line" d="M152 212 H198" />
+      <path class="line-key" d="M350 212 H 418 M412 207 L418 212 L412 217" />
+      <rect class="box-key" x="420" y="184" width="170" height="56" rx="10" />
+      <text class="t" x="505" y="217" text-anchor="middle">{l.model}</text>
+    </g>
+
+    <g data-step style="--step: 3">
+      <path class="line" d="M590 212 C 650 212, 680 170, 680 138" />
+      <rect class="box-key" x="520" y="96" width="262" height="40" rx="20" />
+      <text class="t" x="540" y="121">{l.answer}</text>
+    </g>
+  </svg>
+</Figure>

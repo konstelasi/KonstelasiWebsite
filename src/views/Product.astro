@@ -1,0 +1,199 @@
+---
+/**
+ * The template every product page shares. Pages differ in their diagram,
+ * picked by slug from `diagrams` below, and in their Markdown body.
+ */
+import { Icon } from 'astro-icon/components';
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Status from '../components/Status.astro';
+import StarDust from '../components/diagrams/StarDust.astro';
+import StarCore from '../components/diagrams/StarCore.astro';
+import HyperCms from '../components/diagrams/HyperCms.astro';
+import RouteMate from '../components/diagrams/RouteMate.astro';
+import { type Lang, ui, localePath } from '../i18n';
+import { ordered, slugOf } from '../lib/content';
+
+interface Props {
+  lang: Lang;
+  entry: CollectionEntry<'products'>;
+}
+
+const { lang, entry } = Astro.props;
+const t = ui(lang);
+const { Content } = await render(entry);
+const slug = slugOf(entry);
+const p = entry.data;
+
+const diagrams = { stardust: StarDust, starcore: StarCore, 'hyper-cms': HyperCms, routemate: RouteMate } as const;
+const Diagram = diagrams[slug as keyof typeof diagrams];
+if (!Diagram) throw new Error(`no diagram for product "${slug}"`);
+
+const all = await ordered('products', lang);
+const next = all[(all.findIndex((e) => e.id === entry.id) + 1) % all.length];
+
+const copy = {
+  en: { status: 'Status', version: 'Version', license: 'License', next: 'Next in Labs' },
+  id: { status: 'Status', version: 'Versi', license: 'Lisensi', next: 'Berikutnya di Labs' },
+}[lang];
+const version = /^\d/.test(p.version) ? `v${p.version}` : p.version;
+---
+
+<Base lang={lang} title={p.name} description={p.summary}>
+  <section class="top">
+    <div class="title">
+      <h1>{p.name}</h1>
+      <p class="lead">{p.lead}</p>
+    </div>
+    <dl class="facts">
+      <div><dt>{copy.status}</dt><dd><Status lang={lang} status={p.status} /></dd></div>
+      <div><dt>{copy.version}</dt><dd class="mono">{version}</dd></div>
+      <div><dt>{copy.license}</dt><dd>{p.license}</dd></div>
+      <div class="facts-links">
+        <dd>
+          <a href={p.source} rel="noopener">
+            <Icon name="lucide:code-xml" aria-hidden="true" />{t.common.source}
+          </a>
+          {p.website && (
+            <a href={p.website} rel="noopener">
+              <Icon name="lucide:globe" aria-hidden="true" />{t.common.website}
+            </a>
+          )}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="figure reveal">
+    <Diagram lang={lang} />
+  </section>
+
+  <section class="body">
+    <div class="prose">
+      <Content />
+    </div>
+  </section>
+
+  <nav class="after" aria-label="Labs">
+    <a class="next" href={localePath(lang, `/software/${slugOf(next)}/`)}>
+      <span class="next-label">{copy.next}</span>
+      <span class="next-name">{next.data.name}</span>
+      <span class="next-summary">{next.data.summary}</span>
+    </a>
+    <a class="go" href={localePath(lang, '/labs/')}>
+      {t.common.allProducts}
+      <Icon name="lucide:arrow-right" aria-hidden="true" />
+    </a>
+  </nav>
+</Base>
+
+<style>
+  section,
+  .after {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 2.5rem 4rem;
+    align-items: end;
+    padding-top: clamp(3rem, 9vh, 6rem);
+    padding-bottom: 3rem;
+  }
+  h1 {
+    font-size: clamp(3rem, 8vw, 6.4rem);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+  .lead {
+    margin-top: 1.5rem;
+    max-width: 38rem;
+    font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+    color: var(--text-dim);
+  }
+
+  .facts {
+    display: grid;
+    gap: 0.65rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .facts > div {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+  }
+  .facts dt { color: var(--text-faint); }
+  .facts .facts-links { grid-template-columns: minmax(0, 1fr); margin-top: 0.5rem; }
+  .facts-links dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+  .facts-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+  }
+  .facts-links a:hover { text-decoration: underline; }
+  .facts-links svg { width: 1rem; height: 1rem; }
+
+  .figure { padding-bottom: clamp(3rem, 8vh, 5rem); }
+
+  .body .prose {
+    max-width: var(--w-narrow);
+    margin-left: clamp(0rem, 14vw, 14rem);
+  }
+
+  .after {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2rem;
+    align-items: end;
+    padding-block: clamp(4rem, 10vh, 6rem) 1rem;
+  }
+  .next {
+    display: grid;
+    gap: 0.3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    text-decoration: none;
+  }
+  .next-label {
+    font-size: 0.85rem;
+    color: var(--text-faint);
+  }
+  .next-name {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    transition: color 0.2s var(--ease);
+  }
+  .next:hover .next-name { color: var(--brand); }
+  .next-summary {
+    max-width: 34rem;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 52rem) {
+    .top,
+    .after {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .facts {
+      padding-left: 0;
+      padding-top: 1.25rem;
+      border-left: 0;
+      border-top: 1px solid var(--border);
+    }
+    .body .prose { margin-left: 0; }
+  }
+</style>

@@ -1,0 +1,128 @@
+---
+import Base from '../layouts/Base.astro';
+import { type Lang } from '../i18n';
+import { staticPages } from '../lib/pages';
+import { contact } from '../lib/contact';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const meta = staticPages['/contact-us/'][lang];
+
+const copy = {
+  en: {
+    title: 'Tell us about your project',
+    lede: 'Email is the quickest way to reach us. Write a few lines about what you need, and we will reply with questions or a time to talk.',
+    phone: 'Phone',
+    whatsapp: 'WhatsApp',
+    hours: 'Hours',
+    hoursLines: ['Monday to Friday, 09.00 to 17.00', 'Saturday and Sunday, 10.00 to 18.00', 'Western Indonesia Time (WIB)'],
+    where: 'Where',
+    elsewhere: 'Elsewhere',
+    whatsappLabel: 'Chat on WhatsApp',
+  },
+  id: {
+    title: 'Ceritakan proyek Anda',
+    lede: 'Email adalah cara tercepat untuk menghubungi kami. Tulis beberapa kalimat tentang kebutuhan Anda, dan kami akan membalas dengan pertanyaan atau ajakan untuk mengobrol.',
+    phone: 'Telepon',
+    whatsapp: 'WhatsApp',
+    hours: 'Jam kerja',
+    hoursLines: ['Senin sampai Jumat, 09.00 sampai 17.00', 'Sabtu dan Minggu, 10.00 sampai 18.00', 'Waktu Indonesia Barat (WIB)'],
+    where: 'Lokasi',
+    elsewhere: 'Media sosial',
+    whatsappLabel: 'Chat lewat WhatsApp',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={meta.title} description={meta.description}>
+  <section class="mail">
+    <h1>{copy.title}</h1>
+    <p class="lede">{copy.lede}</p>
+    <a class="address" href={`mailto:${contact.email}`}>{contact.email}</a>
+  </section>
+
+  <section class="details reveal">
+    <dl>
+      <div>
+        <dt>{copy.phone}</dt>
+        <dd><a href={contact.phoneHref}>{contact.phoneDisplay}</a></dd>
+      </div>
+      <div>
+        <dt>{copy.whatsapp}</dt>
+        <dd><a href={contact.whatsappHref} rel="noopener">{copy.whatsappLabel}</a></dd>
+      </div>
+      <div>
+        <dt>{copy.hours}</dt>
+        <dd>{copy.hoursLines.map((l) => <span>{l}</span>)}</dd>
+      </div>
+      <div>
+        <dt>{copy.where}</dt>
+        <dd>{contact.city}</dd>
+      </div>
+      <div>
+        <dt>{copy.elsewhere}</dt>
+        <dd>{contact.socials.map((s) => <a href={s.href} rel="me noopener">{s.name}</a>)}</dd>
+      </div>
+    </dl>
+  </section>
+</Base>
+
+<style>
+  section {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* The address itself is the main element of the page, set as large as
+     the width allows. */
+  .mail {
+    display: grid;
+    gap: 1.25rem;
+    padding-top: clamp(3rem, 10vh, 7rem);
+    padding-bottom: clamp(3rem, 8vh, 5rem);
+  }
+  h1 {
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    font-weight: 500;
+  }
+  .lede {
+    max-width: 34rem;
+    color: var(--text-dim);
+  }
+  .address {
+    margin-top: clamp(1.5rem, 5vh, 3rem);
+    font-size: clamp(1.6rem, 6.4vw, 5.4rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.12em;
+    text-decoration-color: var(--brand);
+    overflow-wrap: anywhere;
+  }
+  .address:hover { color: var(--brand); }
+
+  /* The rest as a quiet grid of labelled facts. */
+  .details dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 2rem 3rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  dt {
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-faint);
+  }
+  dd {
+    display: grid;
+    gap: 0.15rem;
+    justify-items: start;
+  }
+  dd a { text-decoration-color: var(--border-hover); }
+</style>

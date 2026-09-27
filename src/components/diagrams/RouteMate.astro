@@ -1,0 +1,72 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    entered: 'in the order entered',
+    optimized: 'optimized',
+    start: 'start',
+    caption: 'Seven stops entered in a random order, and the round trip RouteMate finds through them. It handles up to twelve.',
+    label: 'A map with a starting point and seven stops. A dashed line visits them in the order they were entered and crosses itself several times. A solid line visits them in the optimized order, as one loop with no crossings.',
+  },
+  id: {
+    entered: 'sesuai urutan input',
+    optimized: 'hasil optimasi',
+    start: 'awal',
+    caption: 'Tujuh titik yang dimasukkan dalam urutan acak, dan rute pulang pergi yang ditemukan RouteMate. Aplikasi ini bisa menangani hingga dua belas titik.',
+    label: 'Peta dengan satu titik awal dan tujuh titik tujuan. Garis putus-putus mengunjunginya sesuai urutan input dan berkali-kali bersilangan. Garis utuh mengunjunginya dalam urutan hasil optimasi, sebagai satu putaran tanpa persilangan.',
+  },
+}[lang];
+
+const depot = { x: 80, y: 150 };
+// Stops in the order they were typed in.
+const stops = [
+  { x: 220, y: 60 }, { x: 380, y: 232 }, { x: 300, y: 120 }, { x: 560, y: 70 },
+  { x: 650, y: 214 }, { x: 470, y: 150 }, { x: 720, y: 110 },
+];
+// The visiting order RouteMate settles on, as indexes into `stops`.
+const best = [0, 2, 5, 3, 6, 4, 1];
+
+const path = (order: number[]) =>
+  `M${depot.x} ${depot.y} ` + order.map((i) => `L${stops[i].x} ${stops[i].y}`).join(' ') + ` L${depot.x} ${depot.y}`;
+const entered = path(stops.map((_, i) => i));
+const optimized = path(best);
+const gridX = Array.from({ length: 9 }, (_, i) => 40 + i * 90);
+const gridY = Array.from({ length: 4 }, (_, i) => 30 + i * 70);
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 300" aria-hidden="true">
+    <g>
+      {gridX.map((x) => <line class="grid" x1={x} y1="10" x2={x} y2="250" />)}
+      {gridY.map((y) => <line class="grid" x1="20" y1={y} x2="780" y2={y} />)}
+    </g>
+
+    <path class="line-dash" d={entered} data-step style="--step: 0" />
+    <path class="line-key" d={optimized} data-step style="--step: 1" />
+
+    <g data-step style="--step: 0">
+      <rect class="box-key" x={depot.x - 9} y={depot.y - 9} width="18" height="18" rx="3" />
+      <text class="t-faint" x={depot.x} y={depot.y + 30} text-anchor="middle">{l.start}</text>
+      {best.map((s, n) => (
+        <g>
+          <circle class="dot-key" cx={stops[s].x} cy={stops[s].y} r="11" />
+          <text class="t-on" x={stops[s].x} y={stops[s].y + 4} text-anchor="middle">{n + 1}</text>
+        </g>
+      ))}
+    </g>
+
+    <g data-step style="--step: 2">
+      <line class="line-dash" x1="20" y1="282" x2="60" y2="282" />
+      <text class="t-faint" x="70" y="287">{l.entered}</text>
+      <line class="line-key" x1="280" y1="282" x2="320" y2="282" />
+      <text class="t-faint" x="330" y="287">{l.optimized}</text>
+    </g>
+  </svg>
+</Figure>

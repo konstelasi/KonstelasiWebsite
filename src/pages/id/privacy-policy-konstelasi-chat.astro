@@ -1,0 +1,9 @@
+---
+import { getEntry } from 'astro:content';
+import Legal from '../../views/Legal.astro';
+
+const entry = await getEntry('legal', 'id/privacy-policy-konstelasi-chat');
+if (!entry) throw new Error('missing the id privacy policy');
+---
+
+<Legal lang="id" entry={entry} />

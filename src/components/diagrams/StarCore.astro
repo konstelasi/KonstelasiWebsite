@@ -1,0 +1,57 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    kernel: 'StarCore kernel',
+    hooks: 'hooks',
+    dev: 'development only',
+    caption: 'Each module is a folder with its own routes, controllers, models and views. Modules never call each other directly. They register hooks with the kernel, and the kernel runs them when the event happens.',
+    label: 'Four modules around the StarCore kernel. Blog registers a filter named content.render, the kernel fires an action named user.login for Auth, Shop is connected the same way, and DebugToolbar is a development-only module.',
+  },
+  id: {
+    kernel: 'Kernel StarCore',
+    hooks: 'hook',
+    dev: 'khusus pengembangan',
+    caption: 'Setiap modul adalah folder dengan route, controller, model, dan view miliknya sendiri. Modul tidak saling memanggil secara langsung. Modul mendaftarkan hook ke kernel, lalu kernel menjalankannya saat event terjadi.',
+    label: 'Empat modul di sekitar kernel StarCore. Blog mendaftarkan filter bernama content.render, kernel memicu action bernama user.login untuk Auth, Shop terhubung dengan cara yang sama, dan DebugToolbar adalah modul khusus pengembangan.',
+  },
+}[lang];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 300" aria-hidden="true">
+    <g data-step style="--step: 0">
+      <rect class="box-key" x="290" y="100" width="220" height="100" rx="10" />
+      <text class="t" x="400" y="140" text-anchor="middle">{l.kernel}</text>
+      <text class="t-faint" x="400" y="164" text-anchor="middle">modules/ · {l.hooks}</text>
+    </g>
+
+    <g data-step style="--step: 1">
+      <rect class="box" x="30" y="30" width="150" height="56" rx="8" />
+      <text class="t" x="105" y="64" text-anchor="middle">Blog</text>
+      <rect class="box" x="30" y="214" width="150" height="56" rx="8" />
+      <text class="t" x="105" y="248" text-anchor="middle">Auth</text>
+      <rect class="box" x="620" y="30" width="150" height="56" rx="8" />
+      <text class="t" x="695" y="64" text-anchor="middle">Shop</text>
+      <rect class="box-dash" x="620" y="214" width="150" height="56" rx="8" />
+      <text class="t-dim" x="695" y="240" text-anchor="middle">DebugToolbar</text>
+      <text class="t-faint" x="695" y="258" text-anchor="middle">{l.dev}</text>
+    </g>
+
+    <g data-step style="--step: 2">
+      <path class="line-key" d="M180 66 C 235 66, 250 120, 290 128" />
+      <text class="t-key" x="30" y="112">register('content.render')</text>
+      <path class="line-key" d="M290 176 C 250 184, 235 236, 180 236" />
+      <text class="t-key" x="30" y="200">action('user.login')</text>
+      <path class="line" d="M620 66 C 565 66, 550 120, 510 128" />
+      <path class="line-dash" d="M620 236 C 565 236, 550 184, 510 176" />
+    </g>
+  </svg>
+</Figure>

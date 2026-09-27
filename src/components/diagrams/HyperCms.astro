@@ -1,0 +1,66 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    model: 'Model',
+    fields: 'Fields',
+    entries: 'Entries',
+    blog: 'Blog',
+    f: [['title', 'text'], ['cover', 'image'], ['body', 'rich text'], ['published', 'date']],
+    items: ['Hello, world', 'Notes from a workshop', 'Release notes'],
+    caption: 'You define a model once, from fields. The item editor is built from those fields, and every entry you write follows the model.',
+    label: 'A Blog model made of four fields, title, cover, body and published, which produce three blog entries.',
+  },
+  id: {
+    model: 'Model',
+    fields: 'Field',
+    entries: 'Entry',
+    blog: 'Blog',
+    f: [['title', 'teks'], ['cover', 'gambar'], ['body', 'rich text'], ['published', 'tanggal']],
+    items: ['Halo, dunia', 'Catatan dari workshop', 'Catatan rilis'],
+    caption: 'Model cukup didefinisikan sekali, dari kumpulan field. Item editor dibentuk dari field tersebut, dan setiap entry yang Anda tulis mengikuti modelnya.',
+    label: 'Model Blog yang terdiri dari empat field, title, cover, body, dan published, yang menghasilkan tiga entry blog.',
+  },
+}[lang];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 260" aria-hidden="true">
+    <g data-step style="--step: 0">
+      <text class="t-faint" x="20" y="24">{l.model}</text>
+      <rect class="box-key" x="20" y="40" width="170" height="80" rx="10" />
+      <text class="t" x="105" y="86" text-anchor="middle">{l.blog}</text>
+    </g>
+
+    <g data-step style="--step: 1">
+      <path class="line" d="M190 80 H250 M244 75 L250 80 L244 85" />
+      <text class="t-faint" x="262" y="24">{l.fields}</text>
+      <rect class="box" x="262" y="40" width="230" height="196" rx="10" />
+      {l.f.map(([name, type], i) => (
+        <g>
+          <text class="t-mono" x="282" y={78 + i * 44}>{name}</text>
+          <text class="t-faint" x="472" y={78 + i * 44} text-anchor="end">{type}</text>
+          {i < l.f.length - 1 && <line class="grid" x1="282" y1={94 + i * 44} x2="472" y2={94 + i * 44} />}
+        </g>
+      ))}
+    </g>
+
+    <g data-step style="--step: 2">
+      <path class="line" d="M492 138 H552 M546 133 L552 138 L546 143" />
+      <text class="t-faint" x="564" y="24">{l.entries}</text>
+      {l.items.map((title, i) => (
+        <g>
+          <rect class="box" x={564 + i * 8} y={40 + i * 64} width="210" height="52" rx="8" />
+          <text class="t-dim" x={580 + i * 8} y={71 + i * 64}>{title.length > 24 ? `${title.slice(0, 23)}…` : title}</text>
+        </g>
+      ))}
+    </g>
+  </svg>
+</Figure>

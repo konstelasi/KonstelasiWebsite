@@ -1,0 +1,13 @@
+---
+import Product from '../../../views/Product.astro';
+import { entriesIn, slugOf } from '../../../lib/content';
+
+export async function getStaticPaths() {
+  const entries = await entriesIn('products', 'id');
+  return entries.map((entry) => ({ params: { slug: slugOf(entry) }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<Product lang="id" entry={entry} />

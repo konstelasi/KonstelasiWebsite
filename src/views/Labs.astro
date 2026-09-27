@@ -1,0 +1,229 @@
+---
+import { Icon } from 'astro-icon/components';
+import Base from '../layouts/Base.astro';
+import Status from '../components/Status.astro';
+import { type Lang, ui, localePath } from '../i18n';
+import { ordered, slugOf } from '../lib/content';
+import { staticPages } from '../lib/pages';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const meta = staticPages['/labs/'][lang];
+const products = await ordered('products', lang);
+
+const copy = {
+  en: {
+    title: 'Where ideas take shape',
+    lede: "A look at our research, our open-source work, and the technology we're building next. Everything here started as a tool we needed ourselves.",
+    legendTitle: 'What the status means',
+    legend: {
+      stable: 'Released, and safe to depend on.',
+      ongoing: 'In active development. Expect changes between releases.',
+      pending: 'Waiting for its next round of work.',
+    },
+    closing: "We like challenging the status quo. If something here could solve a problem of yours, we'd be glad to turn it into something you can use.",
+    closingLink: 'Build on it with us',
+  },
+  id: {
+    title: 'Tempat ide mulai berbentuk',
+    lede: 'Sekilas tentang riset kami, karya open source kami, dan teknologi yang sedang kami bangun berikutnya. Semua yang ada di sini berawal dari alat yang kami butuhkan sendiri.',
+    legendTitle: 'Arti setiap status',
+    legend: {
+      stable: 'Sudah dirilis dan aman untuk diandalkan.',
+      ongoing: 'Sedang aktif dikembangkan. Perubahan bisa terjadi di antara rilis.',
+      pending: 'Menunggu putaran pengerjaan berikutnya.',
+    },
+    closing: 'Kami senang menantang cara-cara lama. Kalau ada yang di sini bisa menyelesaikan masalah Anda, kami siap mengubahnya menjadi sesuatu yang bisa langsung Anda pakai.',
+    closingLink: 'Bangun bersama kami',
+  },
+}[lang];
+
+const statuses = ['stable', 'ongoing', 'pending'] as const;
+---
+
+<Base lang={lang} title={meta.title} description={meta.description}>
+  <section class="head">
+    <h1>{copy.title}</h1>
+    <p>{copy.lede}</p>
+  </section>
+
+  <section class="specimens">
+    {products.map((p, i) => (
+      <article class:list={['specimen', 'reveal', { flip: i % 2 === 1 }]}>
+        <h2>
+          <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
+        </h2>
+        <div class="detail">
+          <p class="facts">
+            <Status lang={lang} status={p.data.status} />
+            <span class="mono">{/^\d/.test(p.data.version) ? `v${p.data.version}` : p.data.version}</span>
+            <span class="mono">{p.data.license}</span>
+          </p>
+          <p class="summary">{p.data.summary}</p>
+          <p class="links">
+            <a class="go" href={localePath(lang, `/software/${slugOf(p)}/`)}>
+              {t.common.readMore}<span class="sr-only">, {p.data.name}</span>
+              <Icon name="lucide:arrow-right" aria-hidden="true" />
+            </a>
+            <a href={p.data.source} rel="noopener">{t.common.source}<span class="sr-only">, {p.data.name}</span></a>
+            {p.data.website && <a href={p.data.website} rel="noopener">{t.common.website}<span class="sr-only">, {p.data.name}</span></a>}
+          </p>
+        </div>
+      </article>
+    ))}
+  </section>
+
+  <section class="legend reveal" aria-labelledby="legend-title">
+    <h2 id="legend-title">{copy.legendTitle}</h2>
+    <dl>
+      {statuses.map((s) => (
+        <div>
+          <dt><Status lang={lang} status={s} /></dt>
+          <dd>{copy.legend[s]}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="end reveal">
+    <p>{copy.closing}</p>
+    <a class="go" href={localePath(lang, '/contact-us/')}>
+      {copy.closingLink}
+      <Icon name="lucide:arrow-right" aria-hidden="true" />
+    </a>
+  </section>
+</Base>
+
+<style>
+  section {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Heading on the left, lede set low on the right. */
+  .head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 1.5rem 4rem;
+    padding-top: clamp(3rem, 10vh, 7rem);
+    padding-bottom: clamp(3rem, 8vh, 5rem);
+  }
+  .head h1 {
+    font-size: clamp(2.4rem, 5.6vw, 4.6rem);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+  .head p {
+    max-width: 28rem;
+    color: var(--text-dim);
+  }
+
+  /* Each product as a type specimen. The name is the image, and the rows
+     alternate which side it sits on. */
+  .specimen {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 1.25rem 4rem;
+    align-items: start;
+    padding-block: clamp(2rem, 5vh, 3.25rem);
+    border-top: 1px solid var(--border);
+  }
+  .specimen:last-child { border-bottom: 1px solid var(--border); }
+  .specimen h2 {
+    font-size: clamp(2.6rem, 7vw, 5.4rem);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+  }
+  .specimen h2 a { text-decoration: none; }
+  .specimen h2 a:hover { color: var(--brand); }
+  .flip h2 {
+    order: 2;
+    text-align: right;
+  }
+
+  .detail {
+    display: grid;
+    gap: 0.9rem;
+    max-width: 30rem;
+    padding-top: 0.6rem;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.1rem;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+  }
+  .summary { color: var(--text-dim); }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.4rem;
+    font-size: 0.95rem;
+  }
+  .links a:not(.go) { color: var(--text-dim); }
+  .links a:not(.go):hover { color: var(--text); }
+
+  /* The legend is small print, in a narrow column under the list. */
+  .legend {
+    max-width: var(--w-wide);
+    padding-block: 3rem 5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 1rem 2rem;
+    font-size: 0.9rem;
+  }
+  .legend h2 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-faint);
+  }
+  .legend dl {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .legend dl > div {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+  }
+  .legend dd { color: var(--text-dim); }
+
+  .end {
+    max-width: 44rem;
+    padding-bottom: 2rem;
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
+    text-align: left;
+  }
+  .end p {
+    font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+  }
+
+  @media (max-width: 52rem) {
+    .head,
+    .specimen,
+    .legend {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .flip h2 {
+      order: 0;
+      text-align: left;
+    }
+  }
+</style>

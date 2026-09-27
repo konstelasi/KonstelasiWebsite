@@ -1,0 +1,320 @@
+---
+/**
+ * The template the four service pages share. Each page gets its own diagram,
+ * picked by slug, and open innovation also lists the products it stands on.
+ * Everything else comes from the entry's frontmatter.
+ */
+import { Icon } from 'astro-icon/components';
+import type { CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Status from '../components/Status.astro';
+import SoftwareDevelopment from '../components/diagrams/SoftwareDevelopment.astro';
+import WorkflowAutomation from '../components/diagrams/WorkflowAutomation.astro';
+import AiSolutions from '../components/diagrams/AiSolutions.astro';
+import OpenInnovation from '../components/diagrams/OpenInnovation.astro';
+import { type Lang, ui, localePath } from '../i18n';
+import { ordered, slugOf } from '../lib/content';
+
+interface Props {
+  lang: Lang;
+  entry: CollectionEntry<'services'>;
+}
+
+const { lang, entry } = Astro.props;
+const t = ui(lang);
+const s = entry.data;
+const slug = slugOf(entry);
+
+const diagrams = {
+  'software-development': SoftwareDevelopment,
+  'workflow-automation': WorkflowAutomation,
+  'ai-solutions': AiSolutions,
+  'open-innovation': OpenInnovation,
+} as const;
+const Diagram = diagrams[slug as keyof typeof diagrams];
+if (!Diagram) throw new Error(`no diagram for service "${slug}"`);
+
+const others = (await ordered('services', lang)).filter((e) => e.id !== entry.id);
+const products = slug === 'open-innovation' ? await ordered('products', lang) : [];
+const copy = {
+  en: { ecosystem: 'What we maintain' },
+  id: { ecosystem: 'Yang kami rawat' },
+}[lang];
+---
+
+<Base lang={lang} title={s.name} description={s.summary}>
+  <section class="top">
+    <h1>{s.headline}</h1>
+    <p class="intro">{s.intro}</p>
+  </section>
+
+  <section class="figure reveal">
+    <Diagram lang={lang} />
+  </section>
+
+  <section class="argument reveal">
+    <div class="problems">
+      <h2>{s.problems.heading}</h2>
+      <ol>
+        {s.problems.items.map((item) => <li>{item}</li>)}
+      </ol>
+    </div>
+    <div class="solution">
+      <h2>{s.solution.heading}</h2>
+      <p>{s.solution.text}</p>
+    </div>
+  </section>
+
+  {products.length > 0 && (
+    <section class="ecosystem reveal" aria-labelledby="eco-title">
+      <h2 id="eco-title">{copy.ecosystem}</h2>
+      <ul>
+        {products.map((p) => (
+          <li>
+            <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
+            <Status lang={lang} status={p.data.status} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {s.cases && (
+    <section class="cases reveal" aria-labelledby="cases-title">
+      <h2 id="cases-title">{s.cases.heading}</h2>
+      <dl>
+        {s.cases.items.map((c) => (
+          <div>
+            <dt>{c.title}</dt>
+            <dd>{c.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )}
+
+  <section class="process reveal" aria-labelledby="process-title">
+    <h2 id="process-title">{s.process.heading}</h2>
+    <ol style={`--count: ${s.process.steps.length}`}>
+      {s.process.steps.map((step) => (
+        <li>
+          <h3>{step.title}</h3>
+          <p>{step.text}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="end reveal">
+    <div class="end-main">
+      <p>{s.closing}</p>
+      <a class="go" href={localePath(lang, '/contact-us/')}>
+        {t.common.contactUs}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </div>
+    <nav aria-labelledby="others-title">
+      <h2 id="others-title">{t.common.otherServices}</h2>
+      <ul>
+        {others.map((o) => (
+          <li><a href={localePath(lang, `/service/${slugOf(o)}/`)}>{o.data.name}</a></li>
+        ))}
+      </ul>
+    </nav>
+  </section>
+</Base>
+
+<style>
+  section {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Headline across the width, intro set narrow and pushed right. */
+  .top {
+    display: grid;
+    gap: 2rem;
+    padding-top: clamp(3rem, 9vh, 6rem);
+    padding-bottom: clamp(2.5rem, 6vh, 4rem);
+  }
+  h1 {
+    max-width: 22ch;
+    font-size: clamp(2.3rem, 5.4vw, 4.4rem);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+  .intro {
+    justify-self: end;
+    max-width: 30rem;
+    font-size: 1.1rem;
+    color: var(--text-dim);
+  }
+
+  .figure { padding-bottom: clamp(4rem, 10vh, 6rem); }
+
+  section h2 {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-faint);
+    margin-bottom: 1.25rem;
+  }
+
+  /* The problem, and our answer beside it on a violet rule. */
+  .argument {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3rem clamp(2rem, 6vw, 6rem);
+    padding-bottom: clamp(4rem, 10vh, 6rem);
+  }
+  .problems ol {
+    list-style: none;
+    counter-reset: p;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .problems li {
+    counter-increment: p;
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    color: var(--text-dim);
+  }
+  .problems li::before {
+    content: counter(p);
+    font: 400 0.8rem/1.9 var(--mono);
+    color: var(--text-faint);
+  }
+  .solution {
+    align-self: start;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--brand);
+  }
+  .solution p {
+    font-size: clamp(1.2rem, 2vw, 1.45rem);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  .ecosystem { padding-bottom: clamp(4rem, 10vh, 6rem); }
+  .ecosystem ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 3rem;
+  }
+  .ecosystem li {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .ecosystem a {
+    font-size: clamp(1.4rem, 2.8vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    text-decoration: none;
+  }
+  .ecosystem a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+
+  /* Use cases as a definition list on a narrower measure. */
+  .cases {
+    max-width: var(--w-text);
+    margin-left: max(0px, calc((100% - var(--w-wide)) / 2));
+    padding-bottom: clamp(4rem, 10vh, 6rem);
+  }
+  .cases dl > div {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: 0.35rem 2rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .cases dt { font-weight: 500; }
+  .cases dd { color: var(--text-dim); }
+
+  /* The process as a timeline: one rule across, a mark per step. */
+  .process { padding-bottom: clamp(4rem, 10vh, 6rem); }
+  .process ol {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+    gap: 2rem;
+    border-top: 1px solid var(--border-bright);
+  }
+  .process li {
+    position: relative;
+    padding-top: 1.5rem;
+  }
+  .process li::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--text);
+  }
+  .process li:first-child::before {
+    background: var(--brand);
+    border-color: var(--brand);
+  }
+  .process h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  .process p {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+  }
+
+  .end {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 3rem;
+    align-items: start;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+  }
+  .end-main {
+    display: grid;
+    gap: 1.25rem;
+    justify-items: start;
+  }
+  .end-main p {
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .end nav ul {
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .end nav a { color: var(--text-dim); }
+  .end nav a:hover { color: var(--text); }
+
+  @media (max-width: 52rem) {
+    .argument,
+    .end,
+    .cases dl > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .intro { justify-self: start; }
+    .process ol {
+      grid-template-columns: minmax(0, 1fr);
+      border-top: 0;
+      border-left: 1px solid var(--border-bright);
+      padding-left: 1.5rem;
+      gap: 1.75rem;
+    }
+    .process li { padding-top: 0; }
+    .process li::before {
+      top: 0.45rem;
+      left: calc(-1.5rem - 5px);
+    }
+  }
+</style>

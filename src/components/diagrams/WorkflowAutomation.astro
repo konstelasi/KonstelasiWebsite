@@ -1,0 +1,58 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    from: ['Website form', 'Spreadsheet', 'Database change'],
+    to: ['CRM', 'WhatsApp to sales', 'PDF invoice by email'],
+    flow: 'workflow',
+    caption: 'The workflow sits between tools that never talked to each other. Data arrives on the left and lands, already tidied, everywhere it needs to be on the right.',
+    label: 'Three sources on the left, a website form, a spreadsheet and a database change, feed one n8n workflow in the middle. It sends the data on to a CRM, a WhatsApp message to sales, and a PDF invoice by email.',
+  },
+  id: {
+    from: ['Formulir website', 'Spreadsheet', 'Perubahan database'],
+    to: ['CRM', 'WhatsApp ke tim sales', 'Invoice PDF lewat email'],
+    flow: 'alur kerja',
+    caption: 'Alur kerja ini berada di antara alat-alat yang tadinya tidak saling bicara. Data masuk dari kiri dan sampai, dalam keadaan rapi, di semua tempat yang membutuhkannya di kanan.',
+    label: 'Tiga sumber di kiri, yaitu formulir website, spreadsheet, dan perubahan database, mengalir ke satu alur kerja n8n di tengah. Dari sana data diteruskan ke CRM, pesan WhatsApp ke tim sales, dan invoice PDF lewat email.',
+  },
+}[lang];
+
+const ys = [50, 140, 230];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 280" aria-hidden="true">
+    <g data-step style="--step: 0">
+      {l.from.map((name, i) => (
+        <g>
+          <rect class="box" x="20" y={ys[i] - 24} width="190" height="48" rx="8" />
+          <text class="t-dim" x="38" y={ys[i] + 5}>{name}</text>
+          <path class="line" d={`M210 ${ys[i]} C 270 ${ys[i]}, 270 140, 320 140`} />
+        </g>
+      ))}
+    </g>
+
+    <g data-step style="--step: 1">
+      <rect class="box-key" x="320" y="100" width="160" height="80" rx="40" />
+      <text class="t" x="400" y="138" text-anchor="middle">n8n</text>
+      <text class="t-key" x="400" y="158" text-anchor="middle">{l.flow}</text>
+    </g>
+
+    <g data-step style="--step: 2">
+      {l.to.map((name, i) => (
+        <g>
+          <path class="line-key" d={`M480 140 C 530 140, 530 ${ys[i]}, 586 ${ys[i]} M580 ${ys[i] - 5} L586 ${ys[i]} L580 ${ys[i] + 5}`} />
+          <rect class="box" x="590" y={ys[i] - 24} width="190" height="48" rx="8" />
+          <text class="t-dim" x="606" y={ys[i] + 5}>{name}</text>
+        </g>
+      ))}
+    </g>
+  </svg>
+</Figure>

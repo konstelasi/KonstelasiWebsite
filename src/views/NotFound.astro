@@ -1,0 +1,70 @@
+---
+import { Icon } from 'astro-icon/components';
+import Base from '../layouts/Base.astro';
+import { type Lang, localePath } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const copy = {
+  en: {
+    title: 'Page not found',
+    text: "This page isn't here. It may have moved when we rebuilt the site, or the link has a typo.",
+    home: 'Go to the home page',
+    labs: 'See what we build in Labs',
+  },
+  id: {
+    title: 'Halaman tidak ditemukan',
+    text: 'Halaman ini tidak ada. Mungkin halamannya pindah saat situs ini kami bangun ulang, atau ada salah ketik di tautannya.',
+    home: 'Ke beranda',
+    labs: 'Lihat karya kami di Labs',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={copy.title} noindex>
+  <section>
+    <p class="code mono" aria-hidden="true">404</p>
+    <h1>{copy.title}</h1>
+    <p>{copy.text}</p>
+    <p class="links">
+      <a class="go" href={localePath(lang, '/')}>
+        {copy.home}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+      <a href={localePath(lang, '/labs/')}>{copy.labs}</a>
+    </p>
+  </section>
+</Base>
+
+<style>
+  section {
+    max-width: var(--w-narrow);
+    margin: 0 auto;
+    padding: clamp(4rem, 14vh, 9rem) var(--gutter) 4rem;
+    display: grid;
+    gap: 1.25rem;
+    box-sizing: content-box;
+  }
+  .code {
+    font-size: clamp(4rem, 14vw, 9rem);
+    line-height: 1;
+    color: var(--border-hover);
+    letter-spacing: -0.04em;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 500;
+  }
+  p { color: var(--text-dim); }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 1rem 2rem;
+    margin-top: 1rem;
+  }
+  .links a:not(.go) { color: var(--text-dim); }
+</style>

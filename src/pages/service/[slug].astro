@@ -1,0 +1,13 @@
+---
+import Service from '../../views/Service.astro';
+import { entriesIn, slugOf } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const entries = await entriesIn('services', 'en');
+  return entries.map((entry) => ({ params: { slug: slugOf(entry) }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<Service lang="en" entry={entry} />

@@ -1,0 +1,80 @@
+---
+/**
+ * The frame every product and service diagram sits in. The diagram builds
+ * in steps when it enters the view: each part marked `data-step` fades in
+ * after the one before, ordered by its `--step`. With reduced motion, or
+ * without JS, the whole drawing simply shows.
+ *
+ * On a narrow screen the drawing keeps a readable size and the frame
+ * scrolls sideways, rather than shrinking the labels past legibility.
+ */
+interface Props {
+  caption: string;
+  label: string;
+}
+
+const { caption, label } = Astro.props;
+---
+
+<figure class="diagram" data-draw>
+  <div class="frame" role="img" aria-label={label}>
+    <slot />
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .diagram {
+    display: grid;
+    gap: 1rem;
+  }
+  .frame {
+    padding: clamp(1rem, 3vw, 2rem);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow-x: auto;
+  }
+  figcaption {
+    max-width: 40rem;
+    font-size: 0.9rem;
+    color: var(--text-faint);
+  }
+
+  .frame :global(svg) {
+    width: 100%;
+    min-width: 34rem;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Shared drawing vocabulary for every diagram. */
+  .frame :global(.box) { fill: var(--bg); stroke: var(--border-bright); stroke-width: 1.25; }
+  .frame :global(.box-key) { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.5; }
+  .frame :global(.box-dash) { fill: none; stroke: var(--border-hover); stroke-width: 1.25; stroke-dasharray: 5 4; }
+  .frame :global(.line) { fill: none; stroke: var(--border-hover); stroke-width: 1.5; }
+  .frame :global(.line-key) { fill: none; stroke: var(--brand); stroke-width: 2; }
+  .frame :global(.line-dash) { fill: none; stroke: var(--border-hover); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .frame :global(.grid) { stroke: var(--border); stroke-width: 1; }
+  .frame :global(.dot) { fill: var(--text); }
+  .frame :global(.dot-key) { fill: var(--brand); }
+  .frame :global(.t) { font: 500 15px var(--sans); fill: var(--text); }
+  .frame :global(.t-dim) { font: 400 14px var(--sans); fill: var(--text-dim); }
+  .frame :global(.t-faint) { font: 400 13px var(--sans); fill: var(--text-faint); }
+  .frame :global(.t-mono) { font: 400 13px var(--mono); fill: var(--text-dim); }
+  .frame :global(.t-key) { font: 500 13px var(--mono); fill: var(--brand); }
+  .frame :global(.t-on) { font: 600 12px var(--sans); fill: var(--bg); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .diagram :global([data-step]) {
+      opacity: 0;
+      translate: 0 6px;
+      transition: opacity 0.6s var(--ease-out), translate 0.6s var(--ease-out);
+      transition-delay: calc(var(--step, 0) * 160ms);
+    }
+    :global(.js) .diagram.is-in :global([data-step]) {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+</style>

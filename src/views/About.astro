@@ -1,0 +1,320 @@
+---
+import { Icon } from 'astro-icon/components';
+import Base from '../layouts/Base.astro';
+import { type Lang, localePath } from '../i18n';
+import { staticPages } from '../lib/pages';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const meta = staticPages['/about/'][lang];
+
+const copy = {
+  en: {
+    statement: 'We build software that fits the business it serves.',
+    intro: 'Konstelasi works in software development, digital platforms and AI. We make software that follows your business processes, connects to the systems you already run, and keeps up when the business grows.',
+    quote: "Konstelasi means bringing people, business and technology together to make people's lives better.",
+    quoteBy: 'Damar Maulana',
+    quoteRole: 'Founder',
+    triad: ['People', 'Business', 'Technology'],
+    visionTitle: 'Our vision',
+    vision: "To help lead digital transformation around the world by bringing software, digital platforms and artificial intelligence together, with solutions that help businesses grow and improve people's quality of life.",
+    valuesTitle: 'What we hold to',
+    values: [
+      { term: 'Quality work', text: 'We deliver on time without cutting corners on quality.' },
+      { term: 'Customers first', text: 'Your trust and satisfaction guide every step of the work.' },
+      { term: 'Open to contribution', text: 'We take on volunteer IT projects that share our values.' },
+      { term: 'A green approach', text: 'We build efficiently, to keep our carbon footprint small.' },
+    ],
+    teamTitle: 'The team',
+    team: [
+      { name: 'Damar Maulana', role: 'Founder and CEO' },
+      { name: 'Akhmad Saoqi', role: 'Co-founder and Head of AI' },
+      { name: 'Dwi Kristanto', role: 'Chief Marketing Officer and HR' },
+    ],
+    closing: "We'd love to hear from you.",
+    closingLink: 'Bring your idea to us',
+  },
+  id: {
+    statement: 'Kami membangun software yang pas dengan bisnis yang dilayaninya.',
+    intro: 'Konstelasi bergerak di bidang pengembangan software, platform digital, dan AI. Software yang kami buat mengikuti proses bisnis Anda, terhubung dengan sistem yang sudah Anda jalankan, dan tetap mampu mengimbangi saat bisnis Anda tumbuh.',
+    quote: 'Konstelasi berarti menyatukan manusia, bisnis, dan teknologi untuk membuat hidup orang menjadi lebih baik.',
+    quoteBy: 'Damar Maulana',
+    quoteRole: 'Pendiri',
+    triad: ['Manusia', 'Bisnis', 'Teknologi'],
+    visionTitle: 'Visi kami',
+    vision: 'Menjadi pelopor transformasi digital global melalui inovasi teknologi berbasis software, platform digital, dan kecerdasan buatan yang terintegrasi, dengan solusi strategis yang mendorong pertumbuhan bisnis dan meningkatkan kualitas hidup masyarakat.',
+    valuesTitle: 'Yang kami pegang',
+    values: [
+      { term: 'Kualitas kerja', text: 'Kami menyelesaikan pekerjaan tepat waktu tanpa mengorbankan kualitas.' },
+      { term: 'Pelanggan lebih dulu', text: 'Kepercayaan dan kepuasan Anda menjadi pegangan di setiap tahap pekerjaan.' },
+      { term: 'Terbuka untuk kontribusi', text: 'Kami terbuka untuk proyek IT sukarela yang sejalan dengan nilai-nilai kami.' },
+      { term: 'Pendekatan hijau', text: 'Kami membangun secara efisien agar jejak karbon kami tetap kecil.' },
+    ],
+    teamTitle: 'Tim kami',
+    team: [
+      { name: 'Damar Maulana', role: 'Pendiri dan CEO' },
+      { name: 'Akhmad Saoqi', role: 'Salah satu pendiri dan Head of AI' },
+      { name: 'Dwi Kristanto', role: 'Chief Marketing Officer dan HR' },
+    ],
+    closing: 'Kami senang mendengar cerita Anda.',
+    closingLink: 'Wujudkan ide Anda bersama kami',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={meta.title} description={meta.description}>
+  <section class="intro">
+    <h1>{copy.statement}</h1>
+    <p>{copy.intro}</p>
+  </section>
+
+  <section class="quote reveal">
+    <figure>
+      <svg class="triad" viewBox="0 0 300 120" aria-hidden="true">
+        <path d="M30 90 L150 25 L270 90" />
+        <line x1="30" y1="90" x2="270" y2="90" />
+        <circle cx="30" cy="90" r="5" />
+        <circle cx="150" cy="25" r="5" />
+        <circle cx="270" cy="90" r="5" />
+        <text x="30" y="114" text-anchor="middle">{copy.triad[0]}</text>
+        <text x="150" y="12" text-anchor="middle">{copy.triad[1]}</text>
+        <text x="270" y="114" text-anchor="middle">{copy.triad[2]}</text>
+      </svg>
+      <blockquote>
+        <p>{copy.quote}</p>
+      </blockquote>
+      <figcaption>
+        <span>{copy.quoteBy}</span>
+        <span class="role">{copy.quoteRole}</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="vision reveal" aria-labelledby="vision-title">
+    <h2 id="vision-title">{copy.visionTitle}</h2>
+    <p>{copy.vision}</p>
+  </section>
+
+  <section class="values reveal" aria-labelledby="values-title">
+    <h2 id="values-title">{copy.valuesTitle}</h2>
+    <dl>
+      {copy.values.map((v) => (
+        <div>
+          <dt>{v.term}</dt>
+          <dd>{v.text}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="team reveal" aria-labelledby="team-title">
+    <h2 id="team-title">{copy.teamTitle}</h2>
+    <ul>
+      {copy.team.map((m) => (
+        <li>
+          <span class="role">{m.role}</span>
+          <span class="name">{m.name}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="end reveal">
+    <p>{copy.closing}</p>
+    <a class="go" href={localePath(lang, '/contact-us/')}>
+      {copy.closingLink}
+      <Icon name="lucide:arrow-right" aria-hidden="true" />
+    </a>
+  </section>
+</Base>
+
+<style>
+  section {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Opening. The statement sits to the right of centre, the reverse of the
+     home page, with the paragraph tucked under its last line. */
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    gap: 2rem;
+    padding-top: clamp(3rem, 10vh, 7rem);
+    padding-bottom: clamp(3.5rem, 10vh, 7rem);
+  }
+  .intro h1 {
+    grid-column: 2;
+    font-size: clamp(2.3rem, 5.2vw, 4.4rem);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+  }
+  .intro p {
+    grid-column: 2;
+    max-width: 36rem;
+    font-size: 1.1rem;
+    color: var(--text-dim);
+  }
+
+  /* The founder's line, set wide on a raised strip that runs edge to edge. */
+  .quote {
+    max-width: none;
+    padding-block: clamp(3.5rem, 9vh, 6rem);
+    background: var(--bg-raised);
+    border-block: 1px solid var(--border);
+  }
+  .quote figure {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    gap: 1.5rem 4rem;
+    align-items: center;
+  }
+  .triad {
+    grid-row: span 2;
+    width: 100%;
+    overflow: visible;
+  }
+  .triad path,
+  .triad line {
+    fill: none;
+    stroke: var(--border-hover);
+    stroke-width: 1.25;
+  }
+  .triad circle { fill: var(--brand); }
+  .triad text {
+    font: 500 13px var(--sans);
+    fill: var(--text-dim);
+  }
+  blockquote p {
+    font-size: clamp(1.5rem, 3.2vw, 2.5rem);
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  figcaption {
+    display: flex;
+    gap: 0.75rem;
+    font-weight: 500;
+  }
+  figcaption .role {
+    font-weight: 400;
+    color: var(--text-faint);
+  }
+
+  /* Vision. A small heading in the margin beside a large paragraph. */
+  .vision {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    gap: 1rem 2rem;
+    padding-block: clamp(4rem, 12vh, 8rem);
+  }
+  .vision h2,
+  .values h2,
+  .team h2 {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-faint);
+  }
+  .vision p {
+    max-width: 44rem;
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    line-height: 1.45;
+  }
+
+  /* Values as ruled rows, term on the left. */
+  .values {
+    max-width: var(--w-text);
+    padding-bottom: clamp(4rem, 12vh, 8rem);
+  }
+  .values h2 { margin-bottom: 1.25rem; }
+  .values dl > div {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    gap: 0.25rem 2rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .values dl > div:last-child { border-bottom: 1px solid var(--border); }
+  .values dt { font-weight: 500; }
+  .values dd { color: var(--text-dim); }
+
+  /* The team as credits, mirrored around a centre line. */
+  .team {
+    padding-bottom: clamp(4rem, 12vh, 8rem);
+    text-align: center;
+  }
+  .team h2 { margin-bottom: 2rem; }
+  .team ul {
+    list-style: none;
+    display: grid;
+    gap: 1rem;
+  }
+  .team li {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: baseline;
+  }
+  .team .role {
+    text-align: right;
+    font-size: 0.9rem;
+    color: var(--text-faint);
+  }
+  .team .name {
+    text-align: left;
+    font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 1rem 2rem;
+    padding-bottom: 2rem;
+  }
+  .end p {
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  @media (max-width: 48rem) {
+    .intro,
+    .vision {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .intro h1,
+    .intro p {
+      grid-column: 1;
+    }
+    .quote figure {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .triad {
+      grid-row: auto;
+      max-width: 16rem;
+    }
+    .values dl > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .team li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.1rem;
+    }
+    .team .role,
+    .team .name {
+      text-align: center;
+    }
+    .team .role { order: 2; }
+  }
+</style>

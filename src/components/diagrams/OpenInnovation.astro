@@ -1,0 +1,54 @@
+---
+import Figure from './Figure.astro';
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    project: 'Your project',
+    ours: ['we wrote', 'this layer'],
+    base: 'PHP, MySQL and MariaDB, Android',
+    caption: 'Most agencies build on layers someone else maintains. In our stack, the layer right under your project is our own open-source work, so we can change it when your project needs it.',
+    label: 'A stack of three layers. Your project is on top. Under it sit our libraries StarCore, StarDust, Hyper CMS and RouteMate, marked as the layer we wrote. At the bottom are PHP, MySQL and MariaDB, and Android.',
+  },
+  id: {
+    project: 'Proyek Anda',
+    ours: ['lapisan ini', 'kami yang menulis'],
+    base: 'PHP, MySQL dan MariaDB, Android',
+    caption: 'Kebanyakan agensi membangun di atas lapisan yang dirawat pihak lain. Di susunan kami, lapisan tepat di bawah proyek Anda adalah karya open source kami sendiri, jadi kami bisa mengubahnya saat proyek Anda membutuhkannya.',
+    label: 'Tumpukan tiga lapisan. Proyek Anda di paling atas. Di bawahnya ada library kami, StarCore, StarDust, Hyper CMS, dan RouteMate, yang ditandai sebagai lapisan yang kami tulis. Di dasar ada PHP, MySQL dan MariaDB, serta Android.',
+  },
+}[lang];
+
+const libs = ['StarCore', 'StarDust', 'Hyper CMS', 'RouteMate'];
+---
+
+<Figure caption={l.caption} label={l.label}>
+  <svg viewBox="0 0 800 270" aria-hidden="true">
+    <g data-step style="--step: 2">
+      <rect class="box" x="20" y="20" width="540" height="60" rx="10" />
+      <text class="t" x="290" y="56" text-anchor="middle">{l.project}</text>
+    </g>
+
+    <g data-step style="--step: 1">
+      {libs.map((name, i) => (
+        <g>
+          <rect class="box-key" x={20 + i * 137} y="100" width="129" height="60" rx="10" />
+          <text class="t" x={84.5 + i * 137} y="136" text-anchor="middle">{name}</text>
+        </g>
+      ))}
+      <path class="line-key" d="M572 100 h12 v60 h-12" />
+      <text class="t-key" x="598" y="126">{l.ours[0]}</text>
+      <text class="t-key" x="598" y="144">{l.ours[1]}</text>
+    </g>
+
+    <g data-step style="--step: 0">
+      <rect class="box" x="20" y="180" width="540" height="60" rx="10" />
+      <text class="t-dim" x="290" y="216" text-anchor="middle">{l.base}</text>
+    </g>
+  </svg>
+</Figure>
