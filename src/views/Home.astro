@@ -1,0 +1,444 @@
+---
+import { Icon } from 'astro-icon/components';
+import Base from '../layouts/Base.astro';
+import Constellation from '../components/home/Constellation.astro';
+import ServiceSystem from '../components/home/ServiceSystem.astro';
+import SlotDemo from '../components/home/SlotDemo.astro';
+import Status from '../components/Status.astro';
+import { type Lang, ui, localePath } from '../i18n';
+import { ordered, slugOf } from '../lib/content';
+import { staticPages } from '../lib/pages';
+import { contact } from '../lib/contact';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui(lang);
+const meta = staticPages['/'][lang];
+
+const services = await ordered('services', lang);
+const products = await ordered('products', lang);
+const stardust = products.find((p) => slugOf(p) === 'stardust');
+const others = products.filter((p) => slugOf(p) !== 'stardust');
+if (!stardust) throw new Error('the home page needs the stardust product entry');
+
+const copy = {
+  en: {
+    statement: 'Software and AI, crafted to fit the way you work.',
+    lede: "Konstelasi is a software company in Yogyakarta. We build custom apps, automate the busywork between your tools, and set up AI that answers from your own data. The work is reliable, and the price makes sense.",
+    opening: "Tell us what you're building",
+    systemTitle: 'Everything we do connects',
+    systemLede: 'Most projects start with one of these and grow into the next. Open one to see what it covers.',
+    labTitle: 'Made in our lab',
+    labLede: 'Open-source software we design ourselves, use in client work and maintain in public.',
+    demoLabel: 'An animation of a StarDust write. The value "software" is copied from the JSON payload into the indexed slot column i_str_01, the value 120 into i_num_01, and the new row is marked as indexed.',
+    indexed: 'indexed',
+    stardustMore: 'How StarDust works',
+    workTitle: 'How we work',
+    work: [
+      {
+        text: 'We start by listening. Before anyone writes code, we sit with the people who will use the software and learn how the work really gets done, including the workarounds nobody wrote down.',
+        note: "Discovery comes first. It is where most of a project's risk gets removed.",
+      },
+      {
+        text: 'Then we design the data and the flow of the system, because a schema is far cheaper to change on paper than in production.',
+        note: 'Architecture before code.',
+      },
+      {
+        text: "We build in short sprints and show you working software along the way, so you can steer while steering is still easy. Deadlines matter to us. Getting it right matters more, and we plan so that we rarely have to choose.",
+        note: 'Regular demos, and no surprises at the end.',
+      },
+      {
+        text: "When it ships, we set up and harden the servers and hand over the complete source code. It is your software. If you'd like us to stay and look after it, we will, and if not, your team has everything it needs.",
+        note: 'Full source handover, then support for as long as you want it.',
+      },
+    ],
+    closing: 'Show us what you have in mind, and we will help you make it real.',
+    whatsapp: 'WhatsApp',
+    contactPage: 'All contact details',
+  },
+  id: {
+    statement: 'Software dan AI yang dirancang mengikuti cara Anda bekerja.',
+    lede: 'Konstelasi adalah perusahaan software di Yogyakarta. Kami membangun aplikasi custom, mengotomatiskan pekerjaan berulang di antara alat-alat Anda, dan memasang AI yang menjawab dari data Anda sendiri. Hasilnya andal, dengan harga yang masuk akal.',
+    opening: 'Ceritakan apa yang sedang Anda bangun',
+    systemTitle: 'Semua yang kami kerjakan saling terhubung',
+    systemLede: 'Kebanyakan proyek dimulai dari salah satunya, lalu berkembang ke yang berikutnya. Buka salah satu untuk melihat cakupannya.',
+    labTitle: 'Dibuat di lab kami',
+    labLede: 'Software open source yang kami rancang sendiri, kami pakai di proyek klien, dan kami rawat secara terbuka.',
+    demoLabel: 'Animasi proses tulis di StarDust. Nilai "software" disalin dari payload JSON ke kolom slot ber-index i_str_01, nilai 120 ke i_num_01, lalu baris barunya ditandai sudah ter-index.',
+    indexed: 'ter-index',
+    stardustMore: 'Cara kerja StarDust',
+    workTitle: 'Cara kami bekerja',
+    work: [
+      {
+        text: 'Kami mulai dengan mendengarkan. Sebelum ada kode yang ditulis, kami duduk bersama orang-orang yang akan memakai software-nya dan mempelajari bagaimana pekerjaan itu benar-benar berjalan, termasuk jalan pintas yang tidak pernah dicatat siapa pun.',
+        note: 'Discovery selalu didahulukan. Di tahap inilah sebagian besar risiko proyek bisa dihilangkan.',
+      },
+      {
+        text: 'Setelah itu kami merancang data dan alur sistemnya, karena mengubah skema di atas kertas jauh lebih murah daripada di production.',
+        note: 'Arsitektur dulu, baru kode.',
+      },
+      {
+        text: 'Kami membangun dalam sprint pendek dan menunjukkan software yang sudah bisa dipakai di sepanjang jalan, supaya Anda bisa mengarahkan selagi masih mudah diarahkan. Tenggat waktu penting bagi kami. Hasil yang benar lebih penting lagi, dan kami merencanakan semuanya agar jarang harus memilih salah satu.',
+        note: 'Demo berkala, tanpa kejutan di akhir.',
+      },
+      {
+        text: 'Saat software-nya siap dipakai, kami menyiapkan dan mengamankan server, lalu menyerahkan seluruh source code. Software itu milik Anda. Kalau Anda ingin kami tetap merawatnya, kami siap. Kalau tidak, tim Anda sudah memegang semua yang dibutuhkan.',
+        note: 'Source code diserahkan utuh, dukungan tersedia selama Anda butuhkan.',
+      },
+    ],
+    closing: 'Tunjukkan apa yang ada di pikiran Anda, dan kami bantu mewujudkannya.',
+    whatsapp: 'WhatsApp',
+    contactPage: 'Semua kontak',
+  },
+}[lang];
+
+const constellationLabels = services.map((s) => s.data.name) as [string, string, string, string];
+---
+
+<Base lang={lang} title={meta.title} description={meta.description} bare>
+  <section class="opening">
+    <div class="opening-text">
+      <h1>{copy.statement}</h1>
+      <p class="lede">{copy.lede}</p>
+      <a class="go" href={localePath(lang, '/contact-us/')}>
+        {copy.opening}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </div>
+    <div class="opening-sky">
+      <Constellation labels={constellationLabels} />
+    </div>
+  </section>
+
+  <section class="what reveal" aria-labelledby="what-title">
+    <header class="what-head">
+      <h2 id="what-title">{copy.systemTitle}</h2>
+      <p>{copy.systemLede}</p>
+    </header>
+    <ServiceSystem lang={lang} services={services} />
+  </section>
+
+  <section class="lab" aria-labelledby="lab-title">
+    <div class="lab-head reveal">
+      <h2 id="lab-title">{copy.labTitle}</h2>
+      <p>{copy.labLede}</p>
+    </div>
+
+    <article class="stardust reveal">
+      <div class="sd-meta">
+        <h3><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
+        <span class="mono version">v{stardust.data.version}</span>
+        <Status lang={lang} status={stardust.data.status} />
+      </div>
+      <p class="sd-summary">{stardust.data.summary}</p>
+      <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
+      <a class="go" href={localePath(lang, '/software/stardust/')}>
+        {copy.stardustMore}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </article>
+
+    <div class="log reveal">
+      <ol>
+        {others.map((p) => (
+          <li>
+            <span class="mono version">{/^\d/.test(p.data.version) ? `v${p.data.version}` : p.data.version}</span>
+            <div class="entry">
+              <p class="entry-head">
+                <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
+                <Status lang={lang} status={p.data.status} />
+              </p>
+              <p class="entry-text">{p.data.summary}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <a class="go" href={localePath(lang, '/labs/')}>
+        {t.common.allProducts}
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </div>
+  </section>
+
+  <section class="work" aria-labelledby="work-title">
+    <h2 id="work-title" class="reveal">{copy.workTitle}</h2>
+    <div class="essay">
+      {copy.work.map((w) => (
+        <div class="beat reveal">
+          <p>{w.text}</p>
+          <aside>{w.note}</aside>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="band" aria-label={t.nav.contact}>
+    <div class="band-inner reveal">
+      <p class="band-line">{copy.closing}</p>
+      <div class="band-contact">
+        <a class="band-mail" href={`mailto:${contact.email}`}>{contact.email}</a>
+        <p>
+          <a href={contact.phoneHref}>{contact.phoneDisplay}</a>
+          <span aria-hidden="true">/</span>
+          <a href={contact.whatsappHref} rel="noopener">{copy.whatsapp}</a>
+        </p>
+        <a class="band-more" href={localePath(lang, '/contact-us/')}>{copy.contactPage}</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  section {
+    padding-inline: var(--gutter);
+  }
+
+  /* Opening. A left-aligned statement in very large type, with the
+     constellation bleeding off the right edge. */
+  .opening {
+    position: relative;
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-top: clamp(3rem, 9vh, 7rem);
+    padding-bottom: clamp(4rem, 12vh, 9rem);
+  }
+  .opening-text {
+    position: relative;
+    z-index: 1;
+    max-width: 42rem;
+    display: grid;
+    gap: 1.75rem;
+    justify-items: start;
+  }
+  h1 {
+    font-size: clamp(2.6rem, 6.6vw, 5.6rem);
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+  .lede {
+    max-width: 34rem;
+    font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+    color: var(--text-dim);
+  }
+  .opening-sky {
+    position: absolute;
+    top: 0;
+    right: calc(-1 * var(--gutter) - 12vw);
+    width: min(52vw, 46rem);
+    pointer-events: none;
+  }
+
+  @media (max-width: 62rem) {
+    .opening-sky {
+      position: relative;
+      right: auto;
+      width: 115%;
+      margin: 2.5rem -15% 0 0;
+    }
+    .opening-sky :global(text) { display: none; }
+    .opening { padding-bottom: 3rem; }
+  }
+
+  /* What we do. Heading and lede side by side, the diagram full width. */
+  .what {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-block: 2rem clamp(5rem, 12vh, 8rem);
+  }
+  .what-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    align-items: end;
+    gap: 1.5rem 4rem;
+    margin-bottom: 2.75rem;
+  }
+  .what-head h2 {
+    font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+    max-width: 18ch;
+  }
+  .what-head p { color: var(--text-dim); }
+
+  /* Products. Deliberately uneven: StarDust gets a large panel, the others
+     a changelog beside it. */
+  .lab {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 2.5rem clamp(2rem, 5vw, 5rem);
+    padding-bottom: clamp(5rem, 12vh, 9rem);
+  }
+  .lab-head {
+    grid-column: 1 / -1;
+    max-width: 36rem;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .lab-head h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); }
+  .lab-head p { color: var(--text-dim); }
+
+  .stardust {
+    display: grid;
+    gap: 1.4rem;
+    justify-items: start;
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .sd-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+  }
+  .sd-meta h3 {
+    font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+    font-weight: 500;
+  }
+  .sd-meta h3 a { text-decoration: none; }
+  .sd-meta h3 a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+  .version {
+    font-size: 0.8rem;
+    color: var(--text-faint);
+  }
+  .sd-summary {
+    max-width: 34rem;
+    color: var(--text-dim);
+  }
+
+  .log {
+    display: grid;
+    align-content: start;
+    gap: 2rem;
+    justify-items: start;
+    padding-top: 0.5rem;
+  }
+  .log ol {
+    list-style: none;
+    width: 100%;
+  }
+  .log li {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    padding: 1.15rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .log li:last-child { border-bottom: 1px solid var(--border); }
+  .log .version { padding-top: 0.3rem; overflow-wrap: anywhere; }
+  .entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.8rem;
+  }
+  .entry-head a {
+    font-size: 1.15rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .entry-head a:hover { text-decoration: underline; }
+  .entry-text {
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 58rem) {
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .what-head { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 30rem) {
+    .log li { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* How we work. One narrow column of large text, with notes in the
+     margin like an essay. */
+  .work {
+    max-width: 66rem;
+    margin: 0 auto;
+    padding-bottom: clamp(5rem, 14vh, 10rem);
+  }
+  .work h2 {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-faint);
+    margin-bottom: 2rem;
+  }
+  .essay {
+    display: grid;
+    gap: 2rem;
+  }
+  .beat {
+    display: grid;
+    grid-template-columns: minmax(0, 42rem) minmax(0, 15rem);
+    gap: 1rem 3.5rem;
+    align-items: start;
+  }
+  .beat p {
+    font-size: clamp(1.25rem, 2.1vw, 1.6rem);
+    line-height: 1.5;
+    letter-spacing: -0.012em;
+  }
+  .beat aside {
+    padding-top: 0.55rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--border-bright);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--text-faint);
+  }
+  @media (max-width: 52rem) {
+    .beat { grid-template-columns: minmax(0, 1fr); }
+    .beat aside { padding-top: 0; }
+  }
+
+  /* Closing. The one full-bleed violet band on the page. */
+  .band {
+    background: var(--brand-fill);
+    color: var(--on-brand-fill);
+  }
+  .band-inner {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding-block: clamp(4rem, 10vh, 7rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 2.5rem 4rem;
+  }
+  .band-line {
+    font-size: clamp(1.9rem, 4vw, 3.3rem);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  .band-contact {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: start;
+    color: var(--on-brand-dim);
+  }
+  .band a { color: var(--on-brand-fill); text-decoration-color: var(--on-brand-dim); }
+  .band-mail {
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+    font-weight: 500;
+  }
+  .band p { display: flex; gap: 0.6rem; }
+  .band-more {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+  }
+  .band :focus-visible { outline-color: var(--on-brand-fill); }
+  @media (max-width: 52rem) {
+    .band-inner { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+

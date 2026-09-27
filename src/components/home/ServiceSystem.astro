@@ -1,0 +1,210 @@
+---
+/**
+ * The four services drawn as one system. Software development, workflow
+ * automation and AI solutions are connected stages, and open innovation is
+ * the layer they all stand on. Opening a stage widens it in place.
+ *
+ * Built from <details name="service">, so it works without JS, and the shared
+ * name makes the browser keep only one stage open at a time.
+ */
+import { Icon } from 'astro-icon/components';
+import type { CollectionEntry } from 'astro:content';
+import { type Lang, ui, localePath } from '../../i18n';
+import { slugOf } from '../../lib/content';
+
+interface Props {
+  lang: Lang;
+  services: CollectionEntry<'services'>[];
+}
+
+const { lang, services } = Astro.props;
+const t = ui(lang);
+const stages = services.slice(0, 3);
+const base = services[3];
+---
+
+<div class="system">
+  <div class="stages">
+    {stages.map((s, i) => (
+      <details name="service" class="stage" open={i === 0}>
+        <summary>
+          <span class="name">{s.data.name}</span>
+          <Icon name="lucide:plus" class="toggle" aria-hidden="true" />
+        </summary>
+        <div class="body">
+          <p>{s.data.summary}</p>
+          <a class="go" href={localePath(lang, `/service/${slugOf(s)}/`)}>
+            {t.common.readMore}<span class="sr-only">, {s.data.name}</span>
+            <Icon name="lucide:arrow-right" aria-hidden="true" />
+          </a>
+        </div>
+        {i < stages.length - 1 && (
+          <svg class="link" viewBox="0 0 40 10" aria-hidden="true">
+            <path d="M0 5 H36 M31 1 L37 5 L31 9" />
+          </svg>
+        )}
+      </details>
+    ))}
+  </div>
+
+  <details name="service" class="base">
+    <summary>
+      <span class="name">{base.data.name}</span>
+      <Icon name="lucide:plus" class="toggle" aria-hidden="true" />
+    </summary>
+    <div class="body">
+      <p>{base.data.summary}</p>
+      <a class="go" href={localePath(lang, `/service/${slugOf(base)}/`)}>
+        {t.common.readMore}<span class="sr-only">, {base.data.name}</span>
+        <Icon name="lucide:arrow-right" aria-hidden="true" />
+      </a>
+    </div>
+  </details>
+</div>
+
+<style>
+  .system {
+    --gap: 3.25rem;
+    --rest: 2.5rem;
+  }
+
+  /* The vertical lines under each stage run down to the base layer. They are
+     longer than needed and clipped by this box, whose bottom padding is the
+     distance to the base. The top padding keeps the arrows unclipped. */
+  .stages {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--gap);
+    align-items: start;
+    padding: 8px 0 var(--rest);
+    overflow: clip;
+    transition: grid-template-columns 0.55s var(--ease-out);
+  }
+
+  /* The open stage takes most of the row. */
+  @media (min-width: 52rem) {
+    .system:has(.stage:nth-child(1)[open]) .stages { grid-template-columns: 2.4fr 1fr 1fr; }
+    .system:has(.stage:nth-child(2)[open]) .stages { grid-template-columns: 1fr 2.4fr 1fr; }
+    .system:has(.stage:nth-child(3)[open]) .stages { grid-template-columns: 1fr 1fr 2.4fr; }
+  }
+
+  .stage {
+    position: relative;
+    min-width: 0;
+    border-top: 2px solid var(--border-bright);
+    transition: border-color 0.3s var(--ease);
+  }
+  .stage[open] { border-top-color: var(--brand); }
+
+  .stage::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 100%;
+    height: 100vh;
+    width: 1px;
+    background: var(--border-bright);
+  }
+  .stage[open]::after { background: var(--brand); }
+
+  summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem 0 1.3rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+
+  .name {
+    font-size: clamp(1.2rem, 2vw, 1.55rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    transition: color 0.2s var(--ease);
+  }
+  details:not([open]) .name { color: var(--text-dim); }
+  summary:hover .name { color: var(--text); }
+
+  .toggle {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--text-faint);
+    transition: rotate 0.3s var(--ease), color 0.3s var(--ease);
+  }
+  details[open] .toggle {
+    rotate: 45deg;
+    color: var(--brand);
+  }
+
+  .body {
+    display: grid;
+    gap: 1.1rem;
+    justify-items: start;
+    max-width: 30rem;
+    padding-bottom: 0.5rem;
+    color: var(--text-dim);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    details[open] .body { animation: settle 0.5s var(--ease-out) both; }
+  }
+
+  .link {
+    position: absolute;
+    top: -6px;
+    right: calc(-1 * var(--gap) + 0.4rem);
+    width: calc(var(--gap) - 0.8rem);
+    height: 10px;
+    fill: none;
+    stroke: var(--border-hover);
+    stroke-width: 1.5;
+  }
+  .stage[open] .link { stroke: var(--brand); }
+
+  /* The base layer, with a hatched strip along its top edge so it reads as
+     the ground the stages stand on. */
+  .base {
+    position: relative;
+    padding: 10px 1.4rem 0;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.3s var(--ease);
+  }
+  .base::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 10px;
+    background: repeating-linear-gradient(-45deg, var(--border-bright) 0 1px, transparent 1px 7px);
+    border-bottom: 1px solid var(--border);
+  }
+  .base[open] { border-color: var(--brand); }
+  .base summary { padding: 1.1rem 0; }
+  .base .body {
+    max-width: 40rem;
+    padding-bottom: 1.4rem;
+  }
+
+  @media (max-width: 51.99rem) {
+    .stages {
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0 0 1.25rem;
+    }
+    .link,
+    .stage::after { display: none; }
+    .stage { border-top-width: 1px; }
+    .stage[open] { border-top-width: 2px; }
+    .body { padding-bottom: 1.6rem; }
+  }
+
+  @keyframes settle {
+    from { opacity: 0; translate: 0 0.5rem; }
+    to { opacity: 1; translate: 0 0; }
+  }
+</style>

@@ -1,0 +1,47 @@
+---
+/**
+ * A product's development status as a small glyph and a word. Ongoing is the
+ * one in violet, because it's the active state: work happening right now.
+ */
+import { type Lang, ui } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  status: 'stable' | 'ongoing' | 'pending';
+}
+
+const { lang, status } = Astro.props;
+const t = ui(lang);
+---
+
+<span class="status" data-status={status}>
+  <svg viewBox="0 0 10 10" aria-hidden="true">
+    <circle cx="5" cy="5" r="4" />
+    {status === 'ongoing' && <path d="M5 1 A4 4 0 0 1 5 9 Z" />}
+  </svg>
+  {t.status[status]}
+</span>
+
+<style>
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font: 400 0.8rem/1 var(--mono);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  svg {
+    width: 0.7em;
+    height: 0.7em;
+    flex: none;
+  }
+  circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+  }
+  [data-status='stable'] circle { fill: currentColor; }
+  [data-status='ongoing'] { color: var(--brand); }
+  [data-status='ongoing'] path { fill: currentColor; }
+</style>

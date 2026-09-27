@@ -1,0 +1,105 @@
+---
+/**
+ * The constellation on the right edge of the home page opening. Its four
+ * named stars are the four services, and the lines between them draw as the
+ * page scrolls. Purely decorative: the services are listed properly in the
+ * next section, so the whole drawing is hidden from assistive tech.
+ */
+interface Props {
+  labels: [string, string, string, string];
+}
+
+const { labels } = Astro.props;
+
+// The four services, in the order of the services collection.
+const named = [
+  { x: 200, y: 165, label: labels[0], anchor: 'end', dx: -16, dy: 5 },
+  { x: 395, y: 105, label: labels[1], anchor: 'start', dx: 16, dy: 5 },
+  { x: 470, y: 350, label: labels[2], anchor: 'start', dx: 16, dy: 5 },
+  { x: 250, y: 445, label: labels[3], anchor: 'end', dx: -16, dy: 5 },
+] as const;
+
+const minor = [
+  [300, 270], [560, 210], [120, 330], [355, 525], [530, 520], [255, 45], [610, 400], [150, 525],
+] as const;
+
+// The violet path joins the four services. The grey lines tie in the minor
+// stars. `i` staggers when each line draws.
+const key = 'M200 165 L395 105 L470 350 L250 445 Z';
+const lines = [
+  [200, 165, 300, 270], [300, 270, 470, 350], [395, 105, 560, 210], [560, 210, 610, 400],
+  [250, 445, 150, 525], [200, 165, 120, 330], [470, 350, 530, 520], [250, 445, 355, 525],
+  [395, 105, 255, 45],
+] as const;
+---
+
+<svg class="sky" viewBox="0 0 640 580" aria-hidden="true" data-draw>
+  <path class="key" d={key} pathLength="1" style="--i: 0" />
+  {lines.map(([x1, y1, x2, y2], i) => (
+    <line x1={x1} y1={y1} x2={x2} y2={y2} pathLength="1" style={`--i: ${i + 1}`} />
+  ))}
+  {minor.map(([cx, cy]) => <circle class="minor" cx={cx} cy={cy} r="2.5" />)}
+  {named.map((s) => (
+    <g class="star">
+      <circle class="halo" cx={s.x} cy={s.y} r="11" />
+      <circle class="core" cx={s.x} cy={s.y} r="4.5" />
+      <text x={s.x + s.dx} y={s.y + s.dy} text-anchor={s.anchor}>{s.label}</text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .sky {
+    overflow: visible;
+  }
+
+  line,
+  .key {
+    fill: none;
+    stroke-width: 1.25;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  line { stroke: var(--border-hover); }
+  .key { stroke: var(--brand); stroke-width: 1.75; }
+
+  .minor { fill: var(--text-faint); }
+  .core { fill: var(--text); }
+  .halo { fill: none; stroke: var(--border-bright); }
+  text {
+    fill: var(--text-dim);
+    font: 500 15px var(--sans);
+    letter-spacing: -0.01em;
+  }
+
+  /* Lines draw with the scroll where the browser supports scroll-driven
+     animation. Each starts a little later than the one before. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      line,
+      .key {
+        animation: draw linear both;
+        animation-timeline: scroll(root);
+        animation-range: calc(var(--i) * 28px) calc(var(--i) * 28px + 220px);
+      }
+    }
+
+    /* Elsewhere they draw once, when the drawing comes into view. */
+    @supports not (animation-timeline: scroll()) {
+      :global(.js) .sky line,
+      :global(.js) .sky .key {
+        stroke-dashoffset: 1;
+      }
+      :global(.js) .sky.is-in line,
+      :global(.js) .sky.is-in .key {
+        animation: draw 0.9s var(--ease-out) both;
+        animation-delay: calc(var(--i) * 90ms);
+      }
+    }
+  }
+
+  @keyframes draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+</style>

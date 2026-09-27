@@ -1,10 +1,10 @@
-// Marks `.reveal` elements with `.is-in` the first time they enter the
-// viewport, so the CSS in base.css can play their entrance once. Diagrams use
-// the same class to start drawing. Anything already on screen at load is
-// marked straight away, and a browser without IntersectionObserver gets
-// everything at once rather than hidden content.
+// Marks `.reveal` and `[data-draw]` elements with `.is-in` the first time they
+// enter the viewport. base.css plays the entrance of `.reveal` once, and
+// diagrams marked `data-draw` use the same class to start drawing. Anything
+// already on screen at load is marked straight away, and a browser without
+// IntersectionObserver gets everything at once rather than hidden content.
 
-const targets = document.querySelectorAll<HTMLElement>('.reveal');
+const targets = document.querySelectorAll<Element>('.reveal, [data-draw]');
 
 if (!('IntersectionObserver' in window)) {
   targets.forEach((el) => el.classList.add('is-in'));
