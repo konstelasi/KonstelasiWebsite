@@ -11,6 +11,9 @@ const { lang } = Astro.props;
 const t = ui(lang);
 const current = basePath(Astro.url.pathname);
 const other = otherLang(lang);
+// The two 404 pages live at different paths, so from one of them the switch
+// goes to the other language's home page.
+const switchTo = /^\/404(\.html|\/)?$/.test(current) ? '/' : current;
 
 const links = [
   { path: '/about/', label: t.nav.about },
@@ -58,7 +61,7 @@ function isActive(path: string): boolean {
   <div class="tools">
     <a
       class="tool"
-      href={localePath(other, current)}
+      href={localePath(other, switchTo)}
       hreflang={other}
       lang={other}
       title={t.lang.switchTo}

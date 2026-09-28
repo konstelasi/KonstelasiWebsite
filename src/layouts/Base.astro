@@ -53,7 +53,7 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
     <title>{fullTitle}</title>
     <meta name="description" content={desc} />
     {noindex && <meta name="robots" content="noindex" />}
-    <link rel="canonical" href={canonical} />
+    {!noindex && <link rel="canonical" href={canonical} />}
     {!noindex && langs.map((l) => (
       <link rel="alternate" hreflang={htmlLang[l]} href={new URL(localePath(l, path), site).href} />
     ))}
