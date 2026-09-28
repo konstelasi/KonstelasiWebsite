@@ -1,0 +1,30 @@
+# Apache rules for the static site on the cPanel host. Astro copies this file
+# into dist/ unchanged.
+
+# Missing pages get the 404 page in the visitor's language.
+ErrorDocument 404 /404.html
+<If "%{REQUEST_URI} =~ m#^/id/#">
+  ErrorDocument 404 /id/404/index.html
+</If>
+
+# Old WordPress URLs that moved. Each rule covers the English path and its
+# Indonesian twin under /id/. Most pages kept their URL and need no rule.
+<IfModule mod_alias.c>
+  RedirectMatch 301 ^/(id/)?project/star-dust/?$ /$1software/stardust/
+  RedirectMatch 301 ^/(id/)?project/star-core/?$ /$1software/starcore/
+  RedirectMatch 301 ^/(id/)?project/hyper-cms/?$ /$1software/hyper-cms/
+  RedirectMatch 301 ^/(id/)?project/routemate/?$ /$1software/routemate/
+  RedirectMatch 301 ^/(id/)?projects/?$ /$1labs/
+  RedirectMatch 301 ^/(id/)?development-status/[^/]+/?$ /$1labs/
+</IfModule>
+
+# Files under /_astro/ carry a content hash in their name, so they never
+# change and can be cached for a year. Pages are always revalidated.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/_astro/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  <If "%{REQUEST_URI} =~ m#(/|\.html)$#">
+    Header set Cache-Control "no-cache"
+  </If>
+</IfModule>

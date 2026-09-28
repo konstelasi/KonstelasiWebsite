@@ -29,7 +29,8 @@ const path = basePath(Astro.url.pathname);
 const fullTitle = bare ? title : `${title} | ${t.site.name}`;
 const desc = description ?? t.site.description;
 const canonical = new URL(localePath(lang, path), site).href;
-const og = new URL(ogImagePath(lang, path), site).href;
+// The 404 page has no preview of its own, so it borrows the home page's.
+const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
 ---
 
 <!doctype html>
