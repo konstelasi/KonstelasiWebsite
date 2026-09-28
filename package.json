@@ -13,6 +13,9 @@
     "preview": "astro preview",
     "check": "astro check",
     "verify:contrast": "node --experimental-strip-types --no-warnings scripts/verify-contrast.ts",
+    "verify:copy": "node --experimental-strip-types --no-warnings scripts/verify-copy.ts",
+    "verify:links": "node --experimental-strip-types --no-warnings scripts/verify-links.ts",
+    "deploy": "bash deploy.sh",
     "astro": "astro"
   },
   "dependencies": {
