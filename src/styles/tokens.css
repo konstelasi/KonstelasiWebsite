@@ -37,8 +37,6 @@
   --brand-fill:    #311b92;
   --on-brand-fill: #ffffff;
   --on-brand-dim:  #d6cff0;
-
-  --logo-filter: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -62,8 +60,6 @@
     --brand-fill:    #311b92;
     --on-brand-fill: #ffffff;
     --on-brand-dim:  #d6cff0;
-
-    --logo-filter: invert(1);
   }
 }
 
@@ -87,8 +83,6 @@
   --brand-fill:    #311b92;
   --on-brand-fill: #ffffff;
   --on-brand-dim:  #d6cff0;
-
-  --logo-filter: invert(1);
 }
 
 :root {

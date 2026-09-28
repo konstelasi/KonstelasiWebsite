@@ -10,7 +10,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import sharp from 'sharp';
 import { ogPages, type OgPage } from '../../../lib/og-pages';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -24,9 +23,9 @@ const fonts = [
   { name: 'Poppins', data: readFileSync(join(root, 'src/assets/fonts/Poppins-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
 ];
 
-// The logo is black, so it's inverted once for the dark card.
-const logo = await sharp(join(root, 'src/assets/konstelasi-logo-black.png')).resize(96, 96).negate({ alpha: false }).png().toBuffer();
-const logoUri = `data:image/png;base64,${logo.toString('base64')}`;
+// The logo in the card's text colour.
+const logo = readFileSync(join(root, 'src/assets/konstelasi-logo.svg'), 'utf8').replace(/currentColor/g, '#ededed');
+const logoUri = `data:image/svg+xml;base64,${Buffer.from(logo).toString('base64')}`;
 
 // A fragment of the home page constellation, bleeding off the right edge.
 const sky = `<svg xmlns="http://www.w3.org/2000/svg" width="520" height="630" viewBox="0 0 520 630">

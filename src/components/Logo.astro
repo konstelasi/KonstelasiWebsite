@@ -1,6 +1,5 @@
 ---
-import { Image } from 'astro:assets';
-import logo from '../assets/konstelasi-logo-black.png';
+import Mark from '../assets/konstelasi-logo.svg';
 
 interface Props {
   size?: number;
@@ -10,21 +9,10 @@ interface Props {
 const { size = 28, class: className } = Astro.props;
 ---
 
-<!-- The mark is a black PNG, so dark mode inverts it through --logo-filter.
-     It's decorative wherever it sits next to the company name. -->
-<Image
-  src={logo}
-  alt=""
-  width={size}
-  height={size}
-  densities={[1, 2]}
-  class:list={['logo', className]}
-  loading="eager"
-/>
+<!-- Inline SVG in currentColor, so it follows the theme on its own. It's
+     decorative wherever it sits next to the company name. -->
+<Mark width={size} height={size} aria-hidden="true" class:list={['logo', className]} />
 
 <style>
-  .logo {
-    filter: var(--logo-filter);
-    flex: none;
-  }
+  .logo { flex: none; }
 </style>
