@@ -67,7 +67,7 @@ const copy = {
 
 <Base lang={lang} title={meta.title} description={meta.description}>
   <section class="intro">
-    <h1>{copy.statement}</h1>
+    <h1 data-split="chars">{copy.statement}</h1>
     <p>{copy.intro}</p>
   </section>
 
@@ -84,7 +84,7 @@ const copy = {
         <text x="270" y="114" text-anchor="middle">{copy.triad[2]}</text>
       </svg>
       <blockquote>
-        <p>{copy.quote}</p>
+        <p data-split="words">{copy.quote}</p>
       </blockquote>
       <figcaption>
         <span>{copy.quoteBy}</span>
@@ -95,7 +95,7 @@ const copy = {
 
   <section class="vision reveal" aria-labelledby="vision-title">
     <h2 id="vision-title">{copy.visionTitle}</h2>
-    <p>{copy.vision}</p>
+    <p data-split="lines">{copy.vision}</p>
   </section>
 
   <section class="values reveal" aria-labelledby="values-title">
@@ -123,7 +123,7 @@ const copy = {
   </section>
 
   <section class="end reveal">
-    <p>{copy.closing}</p>
+    <p data-split="words">{copy.closing}</p>
     <a class="go" href={localePath(lang, '/contact-us/')}>
       {copy.closingLink}
       <Icon name="lucide:arrow-right" aria-hidden="true" />

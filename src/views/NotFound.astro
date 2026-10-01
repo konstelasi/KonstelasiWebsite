@@ -27,7 +27,7 @@ const copy = {
 <Base lang={lang} title={copy.title} noindex>
   <section>
     <p class="code mono" aria-hidden="true">404</p>
-    <h1>{copy.title}</h1>
+    <h1 data-split="words">{copy.title}</h1>
     <p>{copy.text}</p>
     <p class="links">
       <a class="go" href={localePath(lang, '/')}>

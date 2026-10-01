@@ -16,7 +16,7 @@ const updated = { en: 'Last updated', id: 'Terakhir diperbarui' }[lang];
 <Base lang={lang} title={entry.data.title} description={entry.data.description}>
   <article>
     <header>
-      <h1>{entry.data.title}</h1>
+      <h1 data-split="lines">{entry.data.title}</h1>
       <p>{updated} <time datetime={entry.data.updated.toISOString().slice(0, 10)}>{formatDate(lang, entry.data.updated)}</time></p>
     </header>
     <div class="prose">

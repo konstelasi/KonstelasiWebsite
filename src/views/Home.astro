@@ -101,7 +101,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 <Base lang={lang} title={meta.title} description={meta.description} bare>
   <section class="opening">
     <div class="opening-text">
-      <h1>{copy.statement}</h1>
+      <h1 data-split="lines">{copy.statement}</h1>
       <p class="lede">{copy.lede}</p>
       <a class="go" href={localePath(lang, '/contact-us/')}>
         {copy.opening}
@@ -115,7 +115,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   <section class="what reveal" aria-labelledby="what-title">
     <header class="what-head">
-      <h2 id="what-title">{copy.systemTitle}</h2>
+      <h2 id="what-title" data-split="words">{copy.systemTitle}</h2>
       <p>{copy.systemLede}</p>
     </header>
     <ServiceSystem lang={lang} services={services} />
@@ -123,13 +123,13 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   <section class="lab" aria-labelledby="lab-title">
     <div class="lab-head reveal">
-      <h2 id="lab-title">{copy.labTitle}</h2>
+      <h2 id="lab-title" data-split="chars">{copy.labTitle}</h2>
       <p>{copy.labLede}</p>
     </div>
 
     <article class="stardust reveal">
       <div class="sd-meta">
-        <h3><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
+        <h3 style="view-transition-name: product-stardust"><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
         <span class="mono version">v{stardust.data.version}</span>
         <Status lang={lang} status={stardust.data.status} />
       </div>
@@ -168,7 +168,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     <div class="essay">
       {copy.work.map((w) => (
         <div class="beat reveal">
-          <p>{w.text}</p>
+          <p data-split="lines">{w.text}</p>
           <aside>{w.note}</aside>
         </div>
       ))}
@@ -177,7 +177,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   <section class="band" aria-label={t.nav.contact}>
     <div class="band-inner reveal">
-      <p class="band-line">{copy.closing}</p>
+      <p class="band-line" data-split="words">{copy.closing}</p>
       <div class="band-contact">
         <a class="band-mail" href={`mailto:${contact.email}`}>{contact.email}</a>
         <p>

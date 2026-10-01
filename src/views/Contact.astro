@@ -39,9 +39,9 @@ const copy = {
 
 <Base lang={lang} title={meta.title} description={meta.description}>
   <section class="mail">
-    <h1>{copy.title}</h1>
+    <h1 data-split="words">{copy.title}</h1>
     <p class="lede">{copy.lede}</p>
-    <a class="address" href={`mailto:${contact.email}`}>{contact.email}</a>
+    <a class="address" href={`mailto:${contact.email}`} data-split="chars" data-magnetic="0.12">{contact.email}</a>
   </section>
 
   <section class="details reveal">

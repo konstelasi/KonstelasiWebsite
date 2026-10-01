@@ -42,7 +42,7 @@ const version = /^\d/.test(p.version) ? `v${p.version}` : p.version;
 <Base lang={lang} title={p.name} description={p.summary}>
   <section class="top">
     <div class="title">
-      <h1>{p.name}</h1>
+      <h1 data-split="chars" style={`view-transition-name: product-${slug}`}>{p.name}</h1>
       <p class="lead">{p.lead}</p>
     </div>
     <dl class="facts">

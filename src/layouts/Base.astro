@@ -40,9 +40,18 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline>
       // Before first paint, so a stored theme never flashes the other one.
+      // `motion` lets CSS hide what the motion modules are about to animate
+      // in. If they haven't reported ready within 3 s (blocked, failed, very
+      // slow), the class goes again and the page shows everything as is.
       (function () {
         var root = document.documentElement;
         root.classList.add('js');
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          root.classList.add('motion');
+          setTimeout(function () {
+            if (!root.classList.contains('motion-ready')) root.classList.remove('motion');
+          }, 3000);
+        }
         try {
           var t = localStorage.getItem('theme');
           if (t === 'light' || t === 'dark') root.dataset.theme = t;
@@ -90,6 +99,7 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
     <Footer lang={lang} />
     <script>
       import '../scripts/reveal';
+      import '../motion/index';
     </script>
   </body>
 </html>

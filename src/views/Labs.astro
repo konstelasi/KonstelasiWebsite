@@ -47,14 +47,14 @@ const statuses = ['stable', 'ongoing', 'pending'] as const;
 
 <Base lang={lang} title={meta.title} description={meta.description}>
   <section class="head">
-    <h1>{copy.title}</h1>
+    <h1 data-split="lines">{copy.title}</h1>
     <p>{copy.lede}</p>
   </section>
 
   <section class="specimens">
     {products.map((p, i) => (
       <article class:list={['specimen', 'reveal', { flip: i % 2 === 1 }]}>
-        <h2>
+        <h2 data-split="chars" style={`view-transition-name: product-${slugOf(p)}`}>
           <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
         </h2>
         <div class="detail">
@@ -90,7 +90,7 @@ const statuses = ['stable', 'ongoing', 'pending'] as const;
   </section>
 
   <section class="end reveal">
-    <p>{copy.closing}</p>
+    <p data-split="words">{copy.closing}</p>
     <a class="go" href={localePath(lang, '/contact-us/')}>
       {copy.closingLink}
       <Icon name="lucide:arrow-right" aria-hidden="true" />
