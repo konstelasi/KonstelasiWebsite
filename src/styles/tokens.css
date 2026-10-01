@@ -10,7 +10,8 @@
    `--brand` is for text and lines and changes per theme, because #311B92 is
    too dark to read on a near-black surface, so dark mode uses Material Deep
    Purple 200 from the same hue. `--brand-fill` is the solid band colour and
-   stays #311B92 in both themes.
+   stays #311B92 in both themes. `--brand-fill-2` and `--brand-fill-3` are a
+   brighter and a deeper step of it, for the aurora that drifts across the band.
 
    The dark values are declared twice on purpose. The media query covers
    visitors who never touched the toggle, and `[data-theme="dark"]` covers
@@ -35,6 +36,8 @@
   --brand:         #311b92;
   --brand-soft:    #311b9214;
   --brand-fill:    #311b92;
+  --brand-fill-2:  #512da8;
+  --brand-fill-3:  #1c0f5c;
   --on-brand-fill: #ffffff;
   --on-brand-dim:  #d6cff0;
 }
@@ -58,6 +61,8 @@
     --brand:         #b39ddb;
     --brand-soft:    #b39ddb1f;
     --brand-fill:    #311b92;
+    --brand-fill-2:  #512da8;
+    --brand-fill-3:  #1c0f5c;
     --on-brand-fill: #ffffff;
     --on-brand-dim:  #d6cff0;
   }
@@ -81,6 +86,8 @@
   --brand:         #b39ddb;
   --brand-soft:    #b39ddb1f;
   --brand-fill:    #311b92;
+  --brand-fill-2:  #512da8;
+  --brand-fill-3:  #1c0f5c;
   --on-brand-fill: #ffffff;
   --on-brand-dim:  #d6cff0;
 }

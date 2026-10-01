@@ -1,4 +1,11 @@
 ---
+/**
+ * The mark in src/assets/konstelasi-logo.svg was traced from the PNG logo of
+ * the old site. Both paths use currentColor, so it follows the theme on its
+ * own, and the band across the core is the same colour at 10%, which is what
+ * the old flat grey was on white. It's decorative wherever it sits next to
+ * the company name.
+ */
 import Mark from '../assets/konstelasi-logo.svg';
 
 interface Props {
@@ -9,8 +16,6 @@ interface Props {
 const { size = 28, class: className } = Astro.props;
 ---
 
-<!-- Inline SVG in currentColor, so it follows the theme on its own. It's
-     decorative wherever it sits next to the company name. -->
 <Mark width={size} height={size} aria-hidden="true" class:list={['logo', className]} />
 
 <style>

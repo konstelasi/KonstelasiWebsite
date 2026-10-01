@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import Constellation from '../components/home/Constellation.astro';
 import ServiceSystem from '../components/home/ServiceSystem.astro';
 import SlotDemo from '../components/home/SlotDemo.astro';
+import ProductOrbit from '../components/home/ProductOrbit.astro';
 import Status from '../components/Status.astro';
 import { type Lang, ui, localePath } from '../i18n';
 import { ordered, slugOf } from '../lib/content';
@@ -21,7 +22,6 @@ const meta = staticPages['/'][lang];
 const services = await ordered('services', lang);
 const products = await ordered('products', lang);
 const stardust = products.find((p) => slugOf(p) === 'stardust');
-const others = products.filter((p) => slugOf(p) !== 'stardust');
 if (!stardust) throw new Error('the home page needs the stardust product entry');
 
 const copy = {
@@ -95,6 +95,14 @@ const copy = {
   },
 }[lang];
 
+// Stars around the band's contact details, on a tilted ring like the logo's.
+const bandStars: Array<[number, number, number]> = Array.from({ length: 26 }, (_, i) => {
+  const a = (i / 26) * Math.PI * 2;
+  const x = 200 + Math.cos(a) * 170 - Math.sin(a) * 18;
+  const y = 145 + Math.sin(a) * 62 + Math.cos(a) * 10;
+  return [Math.round(x), Math.round(y), i % 5 === 0 ? 3 : i % 2 ? 1.6 : 2.2];
+});
+
 const constellationLabels = services.map((s) => s.data.name) as [string, string, string, string];
 ---
 
@@ -128,40 +136,29 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
       <p>{copy.labLede}</p>
     </div>
 
-    <article class="stardust reveal">
-      <div class="sd-meta">
-        <h3 style="view-transition-name: product-stardust"><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
-        <span class="mono version">v{stardust.data.version}</span>
-        <Status lang={lang} status={stardust.data.status} />
-      </div>
-      <p class="sd-summary">{stardust.data.summary}</p>
-      <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
-      <a class="go" href={localePath(lang, '/software/stardust/')}>
-        {copy.stardustMore}
-        <Icon name="lucide:arrow-right" aria-hidden="true" />
-      </a>
-    </article>
-
-    <div class="log reveal">
-      <ol>
-        {others.map((p) => (
-          <li>
-            <span class="mono version">{/^\d/.test(p.data.version) ? `v${p.data.version}` : p.data.version}</span>
-            <div class="entry">
-              <p class="entry-head">
-                <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
-                <Status lang={lang} status={p.data.status} />
-              </p>
-              <p class="entry-text">{p.data.summary}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+    <div class="orbit-wrap reveal">
+      <ProductOrbit lang={lang} products={products} />
       <a class="go" href={localePath(lang, '/labs/')}>
         {t.common.allProducts}
         <Icon name="lucide:arrow-right" aria-hidden="true" />
       </a>
     </div>
+
+    <article class="stardust reveal">
+      <div class="sd-text">
+        <div class="sd-meta">
+          <h3 style="view-transition-name: product-stardust"><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
+          <span class="mono version">v{stardust.data.version}</span>
+          <Status lang={lang} status={stardust.data.status} />
+        </div>
+        <p class="sd-summary">{stardust.data.summary}</p>
+        <a class="go" href={localePath(lang, '/software/stardust/')}>
+          {copy.stardustMore}
+          <Icon name="lucide:arrow-right" aria-hidden="true" />
+        </a>
+      </div>
+      <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
+    </article>
   </section>
 
   <section class="work" aria-labelledby="work-title">
@@ -177,6 +174,11 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
   </section>
 
   <section class="band" aria-label={t.nav.contact}>
+    <div class="aurora" aria-hidden="true"></div>
+    <svg class="band-stars" viewBox="0 0 400 260" aria-hidden="true" data-band-stars>
+      <path class="band-ring" d="M 30 150 C 30 70, 370 60, 370 120 C 370 190, 30 220, 30 150" pathLength="1" />
+      {bandStars.map(([x, y, r]) => <circle cx={x} cy={y} r={r} />)}
+    </svg>
     <div class="band-inner reveal">
       <p class="band-line" data-split="words">{copy.closing}</p>
       <div class="band-contact">
@@ -303,15 +305,18 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     height: min(72svh, 38rem);
   }
 
-  /* Products. Deliberately uneven: StarDust gets a large panel, the others
-     a changelog beside it. */
+  /* Products. The orbit of all four, then StarDust in a wide panel. */
   .lab {
     max-width: var(--w-wide);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    gap: 2.5rem clamp(2rem, 5vw, 5rem);
+    gap: clamp(2.5rem, 6vh, 4rem);
     padding-bottom: clamp(5rem, 12vh, 9rem);
+  }
+  .orbit-wrap {
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
   }
   .lab-head {
     grid-column: 1 / -1;
@@ -324,12 +329,18 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   .stardust {
     display: grid;
-    gap: 1.4rem;
-    justify-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+    gap: 1.5rem clamp(1.5rem, 4vw, 3.5rem);
+    align-items: center;
     padding: clamp(1.25rem, 3vw, 2.25rem);
     background: var(--bg-raised);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+  }
+  .sd-text {
+    display: grid;
+    gap: 1.25rem;
+    justify-items: start;
   }
   .sd-meta {
     display: flex;
@@ -352,50 +363,9 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     color: var(--text-dim);
   }
 
-  .log {
-    display: grid;
-    align-content: start;
-    gap: 2rem;
-    justify-items: start;
-    padding-top: 0.5rem;
-  }
-  .log ol {
-    list-style: none;
-    width: 100%;
-  }
-  .log li {
-    display: grid;
-    grid-template-columns: 7.5rem minmax(0, 1fr);
-    gap: 0.25rem 1rem;
-    padding: 1.15rem 0;
-    border-top: 1px solid var(--border);
-  }
-  .log li:last-child { border-bottom: 1px solid var(--border); }
-  .log .version { padding-top: 0.3rem; overflow-wrap: anywhere; }
-  .entry-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.8rem;
-  }
-  .entry-head a {
-    font-size: 1.15rem;
-    font-weight: 500;
-    text-decoration: none;
-  }
-  .entry-head a:hover { text-decoration: underline; }
-  .entry-text {
-    margin-top: 0.3rem;
-    font-size: 0.95rem;
-    color: var(--text-dim);
-  }
-
   @media (max-width: 58rem) {
-    .lab { grid-template-columns: minmax(0, 1fr); }
+    .stardust { grid-template-columns: minmax(0, 1fr); }
     .what-head { grid-template-columns: minmax(0, 1fr); }
-  }
-  @media (max-width: 30rem) {
-    .log li { grid-template-columns: minmax(0, 1fr); }
   }
 
   /* How we work. One narrow column of large text, with notes in the
@@ -413,9 +383,39 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     margin-bottom: 2rem;
   }
   .essay {
+    position: relative;
     display: grid;
     gap: 2rem;
   }
+  /* The comet path from src/components/home/comet.ts. */
+  .essay :global(.comet-sky) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .essay :global(.comet-rail) {
+    fill: none;
+    stroke: var(--border-bright);
+    stroke-width: 1;
+    stroke-dasharray: 2 6;
+  }
+  .essay :global(.comet-trail) {
+    fill: none;
+    stroke: var(--brand);
+    stroke-width: 1.5;
+  }
+  .essay :global(.comet-head) { fill: var(--brand); }
+  .essay :global(.comet-halo) {
+    fill: var(--brand-soft);
+    stroke: var(--brand);
+    stroke-opacity: 0.35;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+  }
+  .essay :global(.moving .comet-halo) { opacity: 1; }
   .beat {
     display: grid;
     grid-template-columns: minmax(0, 42rem) minmax(0, 15rem);
@@ -434,6 +434,11 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--text-faint);
+    transition: color 0.5s var(--ease), border-color 0.5s var(--ease);
+  }
+  .beat aside:global(.lit) {
+    color: var(--text-dim);
+    border-left-color: var(--brand);
   }
   @media (max-width: 52rem) {
     .beat { grid-template-columns: minmax(0, 1fr); }
@@ -442,8 +447,45 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   /* Closing. The one full-bleed violet band on the page. */
   .band {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     background: var(--brand-fill);
     color: var(--on-brand-fill);
+  }
+  /* The aurora: two soft lights in deeper and brighter violet drifting
+     slowly across the band. Reduced motion leaves them still. */
+  .aurora {
+    position: absolute;
+    inset: -40%;
+    z-index: -1;
+    background:
+      radial-gradient(38% 46% at 30% 40%, var(--brand-fill-2), transparent 70%),
+      radial-gradient(34% 40% at 72% 62%, var(--brand-fill-3), transparent 72%),
+      radial-gradient(26% 30% at 55% 30%, var(--brand-fill-2), transparent 70%);
+    filter: blur(20px);
+    animation: aurora 22s ease-in-out infinite alternate;
+  }
+  @keyframes aurora {
+    0% { transform: translate(-6%, -3%) rotate(0deg) scale(1); }
+    50% { transform: translate(5%, 4%) rotate(8deg) scale(1.08); }
+    100% { transform: translate(-2%, 6%) rotate(-6deg) scale(1.02); }
+  }
+  .band-stars {
+    position: absolute;
+    right: max(-4rem, calc((100% - var(--w-wide)) / 2 - 4rem));
+    bottom: 1.5rem;
+    width: min(48vw, 34rem);
+    height: auto;
+    z-index: -1;
+    overflow: visible;
+  }
+  .band-stars circle { fill: var(--on-brand-dim); opacity: 0.7; }
+  .band-ring {
+    fill: none;
+    stroke: var(--on-brand-dim);
+    stroke-width: 0.75;
+    opacity: 0.35;
   }
   .band-inner {
     max-width: var(--w-wide);
@@ -485,4 +527,6 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
 <script>
   import '../components/home/home-motion';
+  import '../components/home/comet';
+  import '../components/home/band-motion';
 </script>

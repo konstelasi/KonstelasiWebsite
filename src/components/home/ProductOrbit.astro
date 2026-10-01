@@ -1,0 +1,186 @@
+---
+/**
+ * The four products orbiting the planet of the Konstelasi mark, echoing the
+ * ring in the logo. Scrolling turns the orbit. Hovering or focusing a product
+ * in the list brings its moon to the front, and the moon nearest the front is
+ * the active one, in violet, with its summary open in the list.
+ *
+ * The list is the real content and works on its own. Without JS the moons sit
+ * at fixed places and every summary shows. The orbit is drawn in SVG so the
+ * text in it stays crisp, and `orbit-motion.ts` moves it.
+ */
+import type { CollectionEntry } from 'astro:content';
+import Mark from '../../assets/konstelasi-logo.svg';
+import Status from '../Status.astro';
+import { type Lang, localePath } from '../../i18n';
+import { slugOf } from '../../lib/content';
+
+interface Props {
+  lang: Lang;
+  products: CollectionEntry<'products'>[];
+}
+
+const { lang, products } = Astro.props;
+
+const ORBIT = { cx: 300, cy: 230, rx: 262, ry: 74, tilt: -0.14 };
+
+function place(angle: number): { x: number; y: number; front: boolean } {
+  const x = Math.cos(angle) * ORBIT.rx;
+  const y = Math.sin(angle) * ORBIT.ry;
+  const c = Math.cos(ORBIT.tilt);
+  const s = Math.sin(ORBIT.tilt);
+  return { x: ORBIT.cx + x * c - y * s, y: ORBIT.cy + x * s + y * c, front: Math.sin(angle) > 0 };
+}
+
+const moons = products.map((p, i) => {
+  const angle = Math.PI / 2 + (i * Math.PI * 2) / products.length;
+  return { slug: slugOf(p), name: p.data.name, ...place(angle) };
+});
+const version = (v: string): string => (/^\d/.test(v) ? `v${v}` : v);
+---
+
+<div class="orbit" data-orbit data-rx={ORBIT.rx} data-ry={ORBIT.ry} data-cx={ORBIT.cx} data-cy={ORBIT.cy} data-tilt={ORBIT.tilt}>
+  <ol class="orbit-list">
+    {products.map((p, i) => (
+      <li data-slug={slugOf(p)} class:list={{ active: i === 0 }}>
+        <a href={localePath(lang, `/software/${slugOf(p)}/`)}>
+          <span class="name">{p.data.name}</span>
+          <span class="mono version">{version(p.data.version)}</span>
+        </a>
+        <Status lang={lang} status={p.data.status} />
+        <p class="summary">{p.data.summary}</p>
+      </li>
+    ))}
+  </ol>
+
+  <svg class="orbit-sky" viewBox="0 0 600 420" aria-hidden="true">
+    <g class="ring-back">
+      <ellipse
+        cx={ORBIT.cx}
+        cy={ORBIT.cy}
+        rx={ORBIT.rx}
+        ry={ORBIT.ry}
+        transform={`rotate(${(ORBIT.tilt * 180) / Math.PI} ${ORBIT.cx} ${ORBIT.cy})`}
+        pathLength="1"
+      />
+    </g>
+    <g class="back" data-layer="back">
+      {moons.filter((m) => !m.front).map((m) => (
+        <g class="moon" data-moon={m.slug} transform={`translate(${m.x} ${m.y})`}>
+          <circle class="halo" r="16" />
+          <circle class="body" r="7" />
+          <text x="0" y="-22" text-anchor="middle">{m.name}</text>
+        </g>
+      ))}
+    </g>
+    <g class="planet">
+      <circle cx={ORBIT.cx} cy={ORBIT.cy} r="82" class="planet-plate" />
+      <Mark x={ORBIT.cx - 78} y={ORBIT.cy - 78} width="156" height="156" class="planet-mark" />
+    </g>
+    <g class="front" data-layer="front">
+      {moons.filter((m) => m.front).map((m) => (
+        <g class="moon" data-moon={m.slug} transform={`translate(${m.x} ${m.y})`}>
+          <circle class="halo" r="16" />
+          <circle class="body" r="7" />
+          <text x="0" y="34" text-anchor="middle">{m.name}</text>
+        </g>
+      ))}
+    </g>
+  </svg>
+</div>
+
+<script>
+  import './orbit-motion';
+</script>
+
+<style>
+  .orbit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+    gap: 2rem clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+
+  .orbit-list {
+    list-style: none;
+    display: grid;
+  }
+  .orbit-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 1rem;
+    align-items: baseline;
+    padding: 1rem 0 1rem 1rem;
+    border-left: 2px solid var(--border);
+    transition: border-color 0.3s var(--ease);
+  }
+  .orbit-list a {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.8rem;
+    text-decoration: none;
+  }
+  .name {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .version {
+    font-size: 0.78rem;
+    color: var(--text-faint);
+  }
+  .summary {
+    grid-column: 1 / -1;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+  }
+  .orbit-list li.active { border-left-color: var(--brand); }
+  .orbit-list li.active .name { color: var(--brand); }
+
+  /* With motion, only the active product's summary stays open. */
+  :global(.motion) .orbit-list li .summary {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.5s var(--ease-out), opacity 0.4s var(--ease);
+  }
+  :global(.motion) .orbit-list li.active .summary {
+    max-height: 8rem;
+    opacity: 1;
+    margin-top: 0.3rem;
+  }
+
+  .orbit-sky {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .ring-back ellipse {
+    fill: none;
+    stroke: var(--border-hover);
+    stroke-width: 1.25;
+    stroke-dasharray: 0.004 0.008;
+  }
+  .planet-plate { fill: var(--bg); }
+  .planet :global(.planet-mark) { color: var(--text); }
+
+  .moon .body { fill: var(--text); transition: fill 0.3s var(--ease); }
+  .moon .halo {
+    fill: none;
+    stroke: var(--border-bright);
+    transition: stroke 0.3s var(--ease);
+  }
+  .moon text {
+    font: 500 15px var(--sans);
+    fill: var(--text-dim);
+  }
+  .moon.active .body { fill: var(--brand); }
+  .moon.active .halo { stroke: var(--brand); }
+  .moon.active text { fill: var(--text); }
+
+  @media (max-width: 58rem) {
+    .orbit { grid-template-columns: minmax(0, 1fr); }
+    .orbit-sky { order: -1; max-width: 34rem; justify-self: center; }
+  }
+</style>

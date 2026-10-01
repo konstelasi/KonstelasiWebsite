@@ -54,10 +54,14 @@ const SURFACES = ['bg', 'bg-raised', 'panel', 'panel-2'];
 /** Every token used as a text colour, including `--brand` for links. */
 const FOREGROUNDS = ['text', 'text-dim', 'text-faint', 'brand'];
 
-/** Text on the solid violet band. */
+/** Text on the violet band, which the aurora shades between three steps. */
 const BAND_PAIRS: Array<[string, string]> = [
   ['on-brand-fill', 'brand-fill'],
   ['on-brand-dim', 'brand-fill'],
+  ['on-brand-fill', 'brand-fill-2'],
+  ['on-brand-dim', 'brand-fill-2'],
+  ['on-brand-fill', 'brand-fill-3'],
+  ['on-brand-dim', 'brand-fill-3'],
 ];
 
 let failed = false;

@@ -1,9 +1,9 @@
 ---
 /**
- * A calm loop of what StarDust does on a write. Two values leave the JSON
- * payload and settle into the indexed slot columns of a new row, then the
- * row is marked indexed. This is the one animation on the site that runs
- * without being triggered, so keep it slow.
+ * What StarDust does on a write. Two values leave the JSON payload and
+ * settle into the indexed slot columns of a new row, then the row is marked
+ * indexed. With the motion modules the scroll drives it. Without them, a slow
+ * CSS loop plays it instead.
  *
  * Drawn in SVG user units, so the chips can travel between fixed points.
  * Values in the payload sit in an aligned column at x = 196 for the same
@@ -65,6 +65,30 @@ const rowY = [96, 130, 164];
     <text x="196" y="160">120</text>
   </g>
 </svg>
+
+<script>
+  // The two values travel into their slots as the demo scrolls through the
+  // view, and the row is marked indexed once both have landed. Scrolling back
+  // plays it in reverse, so the reader controls the pace.
+  import { gsap, motionOn } from '../../motion/core';
+
+  if (motionOn) {
+    document.querySelectorAll<SVGSVGElement>('svg.demo').forEach((svg) => {
+      const a = svg.querySelector('.chip-a');
+      const b = svg.querySelector('.chip-b');
+      const mark = svg.querySelector('.mark');
+      if (!a || !b || !mark) return;
+      gsap
+        .timeline({ scrollTrigger: { trigger: svg, start: 'top 82%', end: 'bottom 30%', scrub: 0.6 } })
+        .fromTo(a, { opacity: 0, x: 0, y: 0 }, { opacity: 1, duration: 0.12 })
+        .to(a, { x: 176, y: 34, duration: 0.4, ease: 'power2.inOut' })
+        .fromTo(b, { opacity: 0, x: 0, y: 0 }, { opacity: 1, duration: 0.12 }, '-=0.25')
+        .to(b, { x: 324, y: 4, duration: 0.4, ease: 'power2.inOut' })
+        .fromTo(mark, { opacity: 0, scale: 0.4, svgOrigin: '622 159' }, { opacity: 1, scale: 1, duration: 0.2, ease: 'back.out(2)' })
+        .to({}, { duration: 0.15 });
+    });
+  }
+</script>
 
 <style>
   .demo {
@@ -135,6 +159,12 @@ const rowY = [96, 130, 164];
     :global(.js) .demo.is-in .chip-b { animation: travel 11s var(--ease) 1.1s infinite; }
     :global(.js) .demo.is-in .mark { animation: mark 11s var(--ease) 1.1s infinite; }
   }
+
+  /* Once the motion modules are in, the scroll drives the chips instead of
+     the loop (see the script above). */
+  :global(.motion-ready) .demo .chip,
+  :global(.motion-ready) .demo .mark { animation: none !important; }
+  :global(.motion-ready) .demo .chip { translate: none; }
 
   @keyframes travel {
     0%   { opacity: 0; translate: 0 0; }
