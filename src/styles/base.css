@@ -190,3 +190,20 @@ html.lenis,
 html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: clip; }
+
+/* The star field from src/motion/scene.ts sits behind everything. Content
+   is lifted above it, and sections with their own background simply cover
+   it, which is intended. */
+.sky-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+main,
+.site-footer {
+  position: relative;
+  z-index: 1;
+}
