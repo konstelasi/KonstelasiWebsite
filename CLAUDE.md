@@ -50,7 +50,8 @@ Every human-read text here (page copy, content files, code comments, README) fol
 - `body` uses `overflow-x: clip`, not `hidden`. `hidden` makes it a scroll container and breaks `position: sticky`.
 - A closed `<details>` can't be forced open with CSS in every browser, which is why the phone menu is a JS toggle with a no-JS fallback.
 - `src/lib/og-pages.ts` must list every published page. A page without an entry gets a broken `og:image`, which `npm run verify:links` reports.
-- The logo is a black PNG. Dark mode inverts it through `--logo-filter`, the OG endpoint negates it with sharp, and `scripts/gen-icons.mjs` puts it on a white plate for the favicons. Don't add a second logo file.
+- The logo is one SVG, `src/assets/konstelasi-logo.svg`, traced from the old site's PNG and drawn in `currentColor`, so it follows the theme with no filter. The OG endpoint recolours it, and `scripts/gen-icons.mjs` derives `public/favicon.svg` (with its own dark scheme) and the PNG fallbacks from it. Don't add a second logo file; rerun the generator after changing it.
+- Lightning CSS folds `animation-timeline` into the `animation` shorthand when both sit in one rule, and browsers then drop the declaration. Keep the timeline in its own rule (see `Constellation.astro`) and check the built CSS.
 - Diagrams are SVG in fixed user units. Check that every label fits its box by counting characters (about 7.8 units per char for 13px mono, 8.5 for 15px Poppins), and check the Indonesian label too, since it's usually longer. On phones the diagram frame scrolls sideways instead of shrinking the text.
 - The home page constellation draws with a scroll-driven animation where supported, and once on entering view elsewhere. The StarDust slot animation is the one autonomous loop; don't add a second.
 - Expected build warnings: the empty `portfolio` collection and the missing `src/icons/` folder. Anything else is new.

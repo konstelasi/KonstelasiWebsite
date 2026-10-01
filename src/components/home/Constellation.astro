@@ -73,12 +73,22 @@ const lines = [
   }
 
   /* Lines draw with the scroll where the browser supports scroll-driven
-     animation. Each starts a little later than the one before. */
+     animation. Each starts a little later than the one before.
+
+     The timeline sits in its own, more specific rule on purpose. In one rule
+     with the `animation` shorthand, the minifier folds `scroll(root)` into
+     the shorthand, where browsers reject it and drop the whole declaration. */
   @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: scroll()) {
       line,
       .key {
-        animation: draw linear both;
+        animation-name: draw;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+      }
+      .sky line,
+      .sky .key {
+        animation-duration: auto;
         animation-timeline: scroll(root);
         animation-range: calc(var(--i) * 28px) calc(var(--i) * 28px + 220px);
       }
