@@ -68,6 +68,9 @@ const { caption, label } = Astro.props;
   .frame :global(.t-mono) { font: 400 13px var(--mono); fill: var(--text-dim); }
   .frame :global(.t-key) { font: 500 13px var(--mono); fill: var(--brand); }
   .frame :global(.t-on) { font: 600 12px var(--sans); fill: var(--bg); }
+  /* Data packets on the service pages (src/views/service-motion.ts). */
+  .frame :global(.packet) { fill: var(--text-faint); }
+  .frame :global(.packet-key) { fill: var(--brand); }
 
   /* Once diagram-motion.ts drives a diagram with the scroll, the CSS reveal
      below steps aside. */

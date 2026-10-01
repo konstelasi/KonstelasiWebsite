@@ -48,7 +48,7 @@ const copy = {
     <p class="intro">{s.intro}</p>
   </section>
 
-  <section class="figure reveal">
+  <section class="figure" data-flow>
     <Diagram lang={lang} />
   </section>
 
@@ -56,7 +56,7 @@ const copy = {
     <div class="problems">
       <h2>{s.problems.heading}</h2>
       <ol>
-        {s.problems.items.map((item) => <li>{item}</li>)}
+        {s.problems.items.map((item) => <li><span>{item}</span></li>)}
       </ol>
     </div>
     <div class="solution">
@@ -180,6 +180,16 @@ const copy = {
     display: grid;
     grid-template-columns: 2rem minmax(0, 1fr);
     color: var(--text-dim);
+  }
+  /* Struck through one by one as the solution arrives (service-motion.ts).
+     The line is a background, so it can draw across from left to right. */
+  .problems li span {
+    background: linear-gradient(var(--brand), var(--brand)) no-repeat 0 55% / 0% 1.5px;
+    transition: background-size 0.7s var(--ease-out), color 0.5s var(--ease);
+  }
+  .problems li:global(.struck) span {
+    background-size: 100% 1.5px;
+    color: var(--text-faint);
   }
   .problems li::before {
     content: counter(p);
@@ -318,3 +328,7 @@ const copy = {
     }
   }
 </style>
+
+<script>
+  import './service-motion';
+</script>
