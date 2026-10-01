@@ -48,7 +48,7 @@ const gridY = Array.from({ length: 4 }, (_, i) => 30 + i * 70);
       {gridY.map((y) => <line class="grid" x1="20" y1={y} x2="780" y2={y} />)}
     </g>
 
-    <path class="line-dash" d={entered} data-step style="--step: 0" />
+    <path class="line-dash" d={entered} data-step data-then-dim style="--step: 0" />
     <path class="line-key" d={optimized} data-step style="--step: 1" />
 
     <g data-step style="--step: 0">

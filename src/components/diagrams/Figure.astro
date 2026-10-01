@@ -23,6 +23,10 @@ const { caption, label } = Astro.props;
   <figcaption>{caption}</figcaption>
 </figure>
 
+<script>
+  import './diagram-motion';
+</script>
+
 <style>
   .diagram {
     display: grid;
@@ -64,6 +68,14 @@ const { caption, label } = Astro.props;
   .frame :global(.t-mono) { font: 400 13px var(--mono); fill: var(--text-dim); }
   .frame :global(.t-key) { font: 500 13px var(--mono); fill: var(--brand); }
   .frame :global(.t-on) { font: 600 12px var(--sans); fill: var(--bg); }
+
+  /* Once diagram-motion.ts drives a diagram with the scroll, the CSS reveal
+     below steps aside. */
+  .diagram.scrubbed :global([data-step]) {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
 
   @media (prefers-reduced-motion: no-preference) {
     :global(.js) .diagram :global([data-step]) {

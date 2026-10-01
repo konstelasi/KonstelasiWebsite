@@ -2,6 +2,7 @@
 import { Icon } from 'astro-icon/components';
 import Base from '../layouts/Base.astro';
 import Status from '../components/Status.astro';
+import Mini from '../components/labs/Mini.astro';
 import { type Lang, ui, localePath } from '../i18n';
 import { ordered, slugOf } from '../lib/content';
 import { staticPages } from '../lib/pages';
@@ -54,9 +55,12 @@ const statuses = ['stable', 'ongoing', 'pending'] as const;
   <section class="specimens">
     {products.map((p, i) => (
       <article class:list={['specimen', 'reveal', { flip: i % 2 === 1 }]}>
-        <h2 data-split="chars" style={`view-transition-name: product-${slugOf(p)}`}>
-          <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
-        </h2>
+        <div class="name-col">
+          <h2 data-split="chars" style={`view-transition-name: product-${slugOf(p)}`}>
+            <a href={localePath(lang, `/software/${slugOf(p)}/`)}>{p.data.name}</a>
+          </h2>
+          <Mini kind={slugOf(p) as 'stardust' | 'starcore' | 'hyper-cms' | 'routemate'} />
+        </div>
         <div class="detail">
           <p class="facts">
             <Status lang={lang} status={p.data.status} />
@@ -144,8 +148,14 @@ const statuses = ['stable', 'ongoing', 'pending'] as const;
   }
   .specimen h2 a { text-decoration: none; }
   .specimen h2 a:hover { color: var(--brand); }
-  .flip h2 {
+  .name-col {
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
+  }
+  .flip .name-col {
     order: 2;
+    justify-items: end;
     text-align: right;
   }
 
@@ -221,9 +231,14 @@ const statuses = ['stable', 'ongoing', 'pending'] as const;
     .legend {
       grid-template-columns: minmax(0, 1fr);
     }
-    .flip h2 {
+    .flip .name-col {
       order: 0;
+      justify-items: start;
       text-align: left;
     }
   }
 </style>
+
+<script>
+  import '../components/labs/mini-motion';
+</script>

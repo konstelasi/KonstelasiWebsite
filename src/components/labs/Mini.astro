@@ -1,0 +1,91 @@
+---
+/**
+ * A small live drawing for each product on the Labs page, playing on a loop
+ * while its row is on screen (see mini-motion.ts). Without motion each one
+ * shows its finished state: slots filled, modules docked, the form built,
+ * the route clean.
+ */
+interface Props {
+  kind: 'stardust' | 'starcore' | 'hyper-cms' | 'routemate';
+}
+
+const { kind } = Astro.props;
+
+const route = [[30, 70], [95, 25], [150, 82], [210, 30], [262, 88], [300, 45]] as const;
+const tangled = [0, 3, 1, 4, 2, 5].map((i) => route[i]);
+const toD = (pts: ReadonlyArray<readonly [number, number]>): string => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ');
+---
+
+<svg class="mini" viewBox="0 0 320 112" aria-hidden="true" data-mini={kind}>
+  {kind === 'stardust' && (
+    <g>
+      {[0, 1].map((r) =>
+        [0, 1, 2, 3, 4].map((c) => (
+          <rect class="cell" x={20 + c * 58} y={18 + r * 44} width="50" height="34" rx="5" />
+        )),
+      )}
+      {[0, 1].map((r) =>
+        [0, 1, 2, 3, 4].map((c) => (
+          <rect class="fill" data-cell={r * 5 + c} x={20 + c * 58} y={18 + r * 44} width="50" height="34" rx="5" />
+        )),
+      )}
+    </g>
+  )}
+
+  {kind === 'starcore' && (
+    <g>
+      <rect class="kernel" x="128" y="34" width="64" height="44" rx="8" />
+      {[
+        [40, 20], [40, 70], [240, 20], [240, 70],
+      ].map(([x, y], i) => (
+        <g class="module" data-module={i}>
+          <line class="wire" x1={x < 160 ? x + 40 : x} y1={y + 11} x2={x < 160 ? 128 : 192} y2="56" />
+          <rect class="mod" x={x} y={y} width="40" height="22" rx="4" />
+        </g>
+      ))}
+    </g>
+  )}
+
+  {kind === 'hyper-cms' && (
+    <g>
+      {[0, 1, 2].map((i) => (
+        <g class="field" data-field={i}>
+          <rect class="label" x="20" y={18 + i * 30} width={[34, 46, 28][i]} height="6" rx="3" />
+          <rect class="input" x="70" y={12 + i * 30} width="120" height="18" rx="4" />
+        </g>
+      ))}
+      {[0, 1, 2].map((i) => (
+        <rect class="entry" data-entry={i} x={220 + i * 7} y={18 + i * 12} width="78" height="54" rx="6" />
+      ))}
+    </g>
+  )}
+
+  {kind === 'routemate' && (
+    <g>
+      <path class="tangle" d={toD(tangled)} />
+      <path class="clean" d={toD(route)} pathLength="1" />
+      {route.map(([x, y]) => <circle class="stop" cx={x} cy={y} r="5" />)}
+    </g>
+  )}
+</svg>
+
+<style>
+  .mini {
+    width: 100%;
+    max-width: 22rem;
+    height: auto;
+    overflow: visible;
+  }
+  .cell { fill: none; stroke: var(--border-bright); stroke-dasharray: 3 3; }
+  .fill { fill: var(--brand-soft); stroke: var(--brand); }
+  .kernel { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.5; }
+  .mod { fill: var(--bg); stroke: var(--border-hover); }
+  .wire { stroke: var(--brand); stroke-width: 1.25; }
+  .label { fill: var(--border-hover); }
+  .input { fill: var(--bg); stroke: var(--border-bright); }
+  .entry { fill: var(--bg-raised); stroke: var(--border-hover); }
+  .entry[data-entry='2'] { stroke: var(--brand); }
+  .tangle { fill: none; stroke: var(--border-hover); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .clean { fill: none; stroke: var(--brand); stroke-width: 2; }
+  .stop { fill: var(--text); }
+</style>
