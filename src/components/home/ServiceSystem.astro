@@ -203,6 +203,21 @@ const base = services[3];
     .body { padding-bottom: 1.6rem; }
   }
 
+  /* In the pinned home sequence the stars draw the system, so the stages
+     stack as a list that opens one stage at a time. */
+  :global([data-mode='sequence']) .stages {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0 0 1rem;
+  }
+  :global([data-mode='sequence']) .link,
+  :global([data-mode='sequence']) .stage::after { display: none; }
+  :global([data-mode='sequence']) .stage { border-top-width: 1px; }
+  :global([data-mode='sequence']) .stage[open] { border-top-width: 2px; }
+  :global([data-mode='sequence']) summary { padding: 0.85rem 0 0.95rem; }
+  :global([data-mode='sequence']) .body { padding-bottom: 1.1rem; }
+  :global([data-mode='sequence']) .base { margin-top: 0.25rem; }
+
   @keyframes settle {
     from { opacity: 0; translate: 0 0.5rem; }
     to { opacity: 1; translate: 0 0; }

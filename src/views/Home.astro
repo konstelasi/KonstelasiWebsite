@@ -113,12 +113,13 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     </div>
   </section>
 
-  <section class="what reveal" aria-labelledby="what-title">
+  <section class="what" aria-labelledby="what-title">
     <header class="what-head">
       <h2 id="what-title" data-split="words">{copy.systemTitle}</h2>
       <p>{copy.systemLede}</p>
     </header>
     <ServiceSystem lang={lang} services={services} />
+    <div class="what-sky" aria-hidden="true"></div>
   </section>
 
   <section class="lab" aria-labelledby="lab-title">
@@ -232,6 +233,21 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     pointer-events: none;
   }
 
+  /* With the star field running, the mark is drawn in stars instead, so the
+     SVG constellation steps aside. */
+  :global(.webgl) .opening-sky {
+    opacity: 0;
+    transition: opacity 1.2s var(--ease);
+  }
+
+  @media (min-width: 62rem) {
+    .opening {
+      min-height: calc(100svh - 4.5rem);
+      display: flex;
+      align-items: center;
+    }
+  }
+
   @media (max-width: 62rem) {
     .opening-sky {
       position: relative;
@@ -261,6 +277,31 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     max-width: 18ch;
   }
   .what-head p { color: var(--text-dim); }
+
+  /* The pinned sequence (src/components/home/home-motion.ts sets
+     data-mode). The stages stack on the left and open one by one, and the
+     stars draw the system on the right. */
+  .what-sky { display: none; }
+  .what[data-mode='sequence'] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(2rem, 5vw, 5rem);
+    align-content: center;
+    min-height: 100svh;
+    padding-block: 5rem 3rem;
+  }
+  .what[data-mode='sequence'] .what-head {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 1.5rem;
+  }
+  .what[data-mode='sequence'] .what-sky {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    height: min(72svh, 38rem);
+  }
 
   /* Products. Deliberately uneven: StarDust gets a large panel, the others
      a changelog beside it. */
@@ -442,3 +483,6 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
   }
 </style>
 
+<script>
+  import '../components/home/home-motion';
+</script>
