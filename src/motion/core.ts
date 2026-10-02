@@ -30,14 +30,16 @@ let lenis: Lenis | null = null;
  */
 export function startSmoothScroll(): void {
   if (!motionOn || !finePointer || lenis) return;
-  lenis = new Lenis({ lerp: 0.11, wheelMultiplier: 0.95, anchors: true, autoRaf: false });
+  // Anchors stay native, so the skip link still moves focus to the content.
+  lenis = new Lenis({ lerp: 0.11, wheelMultiplier: 0.95, anchors: false, autoRaf: false });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis?.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
 }
 
+/** Only with motion on, so reduced motion keeps every CSS final state. */
 export function ready(): void {
-  document.documentElement.classList.add('motion-ready');
+  if (motionOn) document.documentElement.classList.add('motion-ready');
 }
 
 /**

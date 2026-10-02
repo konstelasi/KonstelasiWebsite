@@ -323,7 +323,8 @@ function create(): Scene | null {
 
   gsap.ticker.add(frame);
   document.documentElement.classList.add('webgl');
-  gsap.to(scene, { presence: 1, duration: 1.6, ease: 'power2.out' });
+  const quiet = document.body.dataset.sky === 'quiet';
+  gsap.to(scene, { presence: quiet ? 0.35 : 1, duration: 1.6, ease: 'power2.out' });
   return scene;
 }
 

@@ -57,6 +57,8 @@ export function initType(): void {
       type: variant === 'chars' ? 'words,chars' : variant,
       mask: variant === 'lines' ? 'lines' : undefined,
       linesClass: 'line',
+      // Spans, not the default divs, so a split link stays valid HTML.
+      tag: 'span',
       aria: 'auto',
       autoSplit: true,
       onSplit(self) {

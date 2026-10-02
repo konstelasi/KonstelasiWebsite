@@ -13,7 +13,7 @@ const { Content } = await render(entry);
 const updated = { en: 'Last updated', id: 'Terakhir diperbarui' }[lang];
 ---
 
-<Base lang={lang} title={entry.data.title} description={entry.data.description}>
+<Base lang={lang} title={entry.data.title} description={entry.data.description} sky="quiet">
   <article>
     <header>
       <h1 data-split="lines">{entry.data.title}</h1>
