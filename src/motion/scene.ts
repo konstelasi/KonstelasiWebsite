@@ -67,6 +67,9 @@ export interface Scene {
   burst: number;
   /** Overall opacity of the sky, 0 to 1, for quieter pages. */
   presence: number;
+  /** When set, the pointer pushes the stars of a formed shape aside, and
+   *  they drift back once it moves on. */
+  repel: boolean;
   /** Fits `shape` into `anchor` and makes it the shape `form` refers to. */
   assemble(shape: Shape, anchor: Anchor, fit?: number): void;
   /** Particle count, for sizing shapes. */
@@ -181,14 +184,18 @@ function create(): Scene | null {
   window.addEventListener('resize', resize);
 
   // The pointer, eased, as an offset from the centre of the screen.
-  const pointer = { x: 0, y: 0 };
+  const pointer = { x: 0, y: 0, px: -9999, py: -9999 };
   const lean = { x: 0, y: 0 };
-  if (finePointer) {
-    window.addEventListener('pointermove', (e) => {
-      pointer.x = e.clientX / window.innerWidth - 0.5;
-      pointer.y = e.clientY / window.innerHeight - 0.5;
-    });
-  }
+  window.addEventListener('pointermove', (e) => {
+    pointer.px = e.clientX;
+    pointer.py = e.clientY;
+    if (!finePointer) return;
+    pointer.x = e.clientX / window.innerWidth - 0.5;
+    pointer.y = e.clientY / window.innerHeight - 0.5;
+  });
+  // How far each star has been pushed aside by the pointer. Decays back.
+  const pushX = new Float32Array(N);
+  const pushY = new Float32Array(N);
 
   let shape: Shape | null = null;
   let anchor: Anchor | null = null;
@@ -198,6 +205,7 @@ function create(): Scene | null {
     form: 0,
     burst: 0,
     presence: 0,
+    repel: false,
     count: N,
     assemble(next, where, f = 0.9) {
       shape = next;
@@ -262,6 +270,20 @@ function create(): Scene | null {
         x = sx + (tx - sx) * w + (dx / dl) * arc;
         y = sy + (ty - sy) * w + (dy / dl) * arc;
         inShape = w;
+        if (scene.repel) {
+          const qx = x + pushX[i] - pointer.px;
+          const qy = y + pushY[i] - pointer.py;
+          const qd = Math.hypot(qx, qy);
+          if (qd < 110 && qd > 0.01) {
+            const f = (110 - qd) / 110;
+            pushX[i] += (qx / qd) * f * 9;
+            pushY[i] += (qy / qd) * f * 9;
+          }
+        }
+        pushX[i] *= 0.93;
+        pushY[i] *= 0.93;
+        x += pushX[i];
+        y += pushY[i];
       }
 
       position[i * 3] = x;

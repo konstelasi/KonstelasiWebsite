@@ -48,6 +48,12 @@ const copy = {
     gap: 1.25rem;
     box-sizing: content-box;
   }
+  /* Once the stars draw the number, the text steps aside but keeps its
+     space, which is the box the stars fill. */
+  .code:global(.drawn) {
+    color: transparent;
+    transition: color 1.2s var(--ease);
+  }
   .code {
     font-size: clamp(4rem, 14vw, 9rem);
     line-height: 1;
@@ -68,3 +74,7 @@ const copy = {
   }
   .links a:not(.go) { color: var(--text-dim); }
 </style>
+
+<script>
+  import './notfound-motion';
+</script>

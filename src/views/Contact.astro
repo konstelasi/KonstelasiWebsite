@@ -22,6 +22,10 @@ const copy = {
     where: 'Where',
     elsewhere: 'Elsewhere',
     whatsappLabel: 'Chat on WhatsApp',
+    now: 'Right now',
+    open: "It's {time} in Yogyakarta, and we're in the office.",
+    closed: "It's {time} in Yogyakarta. We're outside office hours and will reply when we're back.",
+    mapLabel: 'Yogyakarta, at 7.80 degrees south and 110.37 degrees east',
   },
   id: {
     title: 'Ceritakan proyek Anda',
@@ -33,8 +37,26 @@ const copy = {
     where: 'Lokasi',
     elsewhere: 'Media sosial',
     whatsappLabel: 'Chat lewat WhatsApp',
+    now: 'Saat ini',
+    open: 'Sekarang pukul {time} di Yogyakarta, dan kami sedang di kantor.',
+    closed: 'Sekarang pukul {time} di Yogyakarta. Kami sedang di luar jam kerja dan akan membalas begitu kembali.',
+    mapLabel: 'Yogyakarta, di 7,80 derajat lintang selatan dan 110,37 derajat bujur timur',
   },
 }[lang];
+
+// A coordinate grid around Yogyakarta: 0.1 degree per line, 350 units per
+// degree of longitude and 400 per degree of latitude.
+const LON0 = 110.0;
+const LAT0 = -7.5;
+const toX = (lon: number): number => 30 + (lon - LON0) * 350;
+const toY = (lat: number): number => 30 + (LAT0 - lat) * 400;
+const here = { x: toX(110.3695), y: toY(-7.7956) };
+const lons = Array.from({ length: 9 }, (_, i) => +(LON0 + i * 0.1).toFixed(1));
+const lats = Array.from({ length: 7 }, (_, i) => +(LAT0 - i * 0.1).toFixed(1));
+const deg = (v: number, pos: string, neg: string): string =>
+  `${Math.abs(v).toFixed(1).replace('.', lang === 'id' ? ',' : '.')}° ${v < 0 ? neg : pos}`;
+const S = lang === 'id' ? 'LS' : 'S';
+const E = lang === 'id' ? 'BT' : 'E';
 ---
 
 <Base lang={lang} title={meta.title} description={meta.description}>
@@ -46,6 +68,10 @@ const copy = {
 
   <section class="details reveal">
     <dl>
+      <div class="now" data-clock data-open={copy.open} data-closed={copy.closed} hidden>
+        <dt>{copy.now}</dt>
+        <dd><span data-clock-text></span></dd>
+      </div>
       <div>
         <dt>{copy.phone}</dt>
         <dd><a href={contact.phoneHref}>{contact.phoneDisplay}</a></dd>
@@ -67,6 +93,26 @@ const copy = {
         <dd>{contact.socials.map((s) => <a href={s.href} rel="me noopener">{s.name}</a>)}</dd>
       </div>
     </dl>
+
+    <svg class="geo" viewBox="0 0 340 300" role="img" aria-label={copy.mapLabel} data-geo>
+      {lons.map((lon, i) => (
+        <g class="meridian">
+          <line x1={toX(lon)} y1="20" x2={toX(lon)} y2="280" class:list={{ major: i % 4 === 0 }} />
+          {i % 4 === 0 && <text x={toX(lon)} y="296" text-anchor="middle">{deg(lon, E, E)}</text>}
+        </g>
+      ))}
+      {lats.map((lat, i) => (
+        <g class="parallel">
+          <line x1="20" y1={toY(lat)} x2="320" y2={toY(lat)} class:list={{ major: i % 2 === 1 }} />
+          {i % 2 === 1 && <text x="2" y={toY(lat) - 5}>{deg(lat, 'N', S)}</text>}
+        </g>
+      ))}
+      <path class="cross" d={`M${here.x} 20 V280 M20 ${here.y} H320`} />
+      <circle class="pulse" cx={here.x} cy={here.y} r="10" />
+      <circle class="pulse late" cx={here.x} cy={here.y} r="10" />
+      <circle class="here" cx={here.x} cy={here.y} r="5" />
+      <text class="here-label" x={here.x + 14} y={here.y - 12}>Yogyakarta</text>
+    </svg>
   </section>
 </Base>
 
@@ -106,6 +152,51 @@ const copy = {
   }
   .address:hover { color: var(--brand); }
 
+  /* The facts beside a coordinate grid that pins down where we are. */
+  .details {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 3rem clamp(2rem, 5vw, 5rem);
+    align-items: start;
+  }
+  .now { grid-column: 1 / -1; }
+  .now dd { color: var(--text); max-width: 30rem; }
+  .geo {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    margin-top: 2.5rem;
+  }
+  .geo line { stroke: var(--border); stroke-width: 1; }
+  .geo line.major { stroke: var(--border-bright); }
+  .geo text { font: 400 11px var(--mono); fill: var(--text-faint); }
+  .geo .cross {
+    fill: none;
+    stroke: var(--brand);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    opacity: 0.6;
+  }
+  .geo .here { fill: var(--brand); }
+  .geo .here-label { font: 500 14px var(--sans); fill: var(--text); }
+  .geo .pulse {
+    fill: none;
+    stroke: var(--brand);
+    stroke-width: 1.5;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pulse 2.8s var(--ease-out) infinite;
+  }
+  .geo .pulse.late { animation-delay: 1.4s; }
+  @keyframes pulse {
+    from { scale: 0.5; opacity: 0.9; }
+    to { scale: 3.2; opacity: 0; }
+  }
+  @media (max-width: 52rem) {
+    .details { grid-template-columns: minmax(0, 1fr); }
+    .geo { max-width: 26rem; }
+  }
+
   /* The rest as a quiet grid of labelled facts. */
   .details dl {
     display: grid;
@@ -126,3 +217,7 @@ const copy = {
   }
   dd a { text-decoration-color: var(--border-hover); }
 </style>
+
+<script>
+  import './contact-motion';
+</script>

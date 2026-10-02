@@ -73,15 +73,14 @@ const copy = {
 
   <section class="quote reveal">
     <figure>
-      <svg class="triad" viewBox="0 0 300 120" aria-hidden="true">
-        <path d="M30 90 L150 25 L270 90" />
-        <line x1="30" y1="90" x2="270" y2="90" />
-        <circle cx="30" cy="90" r="5" />
-        <circle cx="150" cy="25" r="5" />
-        <circle cx="270" cy="90" r="5" />
-        <text x="30" y="114" text-anchor="middle">{copy.triad[0]}</text>
-        <text x="150" y="12" text-anchor="middle">{copy.triad[1]}</text>
-        <text x="270" y="114" text-anchor="middle">{copy.triad[2]}</text>
+      <svg class="triad" viewBox="0 0 300 120" aria-hidden="true" data-triad>
+        <path d="M30 90 L150 25 L270 90 Z" data-edges />
+        <circle cx="30" cy="90" r="5" data-node="0" />
+        <circle cx="150" cy="25" r="5" data-node="1" />
+        <circle cx="270" cy="90" r="5" data-node="2" />
+        <text x="30" y="114" text-anchor="middle" data-label="0">{copy.triad[0]}</text>
+        <text x="150" y="12" text-anchor="middle" data-label="1">{copy.triad[1]}</text>
+        <text x="270" y="114" text-anchor="middle" data-label="2">{copy.triad[2]}</text>
       </svg>
       <blockquote>
         <p data-split="words">{copy.quote}</p>
@@ -98,7 +97,7 @@ const copy = {
     <p data-split="lines">{copy.vision}</p>
   </section>
 
-  <section class="values reveal" aria-labelledby="values-title">
+  <section class="values" aria-labelledby="values-title" data-values>
     <h2 id="values-title">{copy.valuesTitle}</h2>
     <dl>
       {copy.values.map((v) => (
@@ -112,6 +111,16 @@ const copy = {
 
   <section class="team reveal" aria-labelledby="team-title">
     <h2 id="team-title">{copy.teamTitle}</h2>
+    <svg class="team-sky" viewBox="0 0 520 130" aria-hidden="true" data-team-sky>
+      <path class="team-lines" d="M70 84 L262 34 L452 92" pathLength="1" />
+      {[[30, 30], [140, 112], [330, 108], [400, 22], [500, 40], [200, 70]].map(([x, y]) => <circle class="faint" cx={x} cy={y} r="1.6" />)}
+      {[[70, 84], [262, 34], [452, 92]].map(([x, y]) => (
+        <g class="person">
+          <circle class="ring" cx={x} cy={y} r="11" />
+          <circle class="star" cx={x} cy={y} r="4.5" />
+        </g>
+      ))}
+    </svg>
     <ul>
       {copy.team.map((m) => (
         <li>
@@ -181,8 +190,7 @@ const copy = {
     width: 100%;
     overflow: visible;
   }
-  .triad path,
-  .triad line {
+  .triad path {
     fill: none;
     stroke: var(--border-hover);
     stroke-width: 1.25;
@@ -245,6 +253,64 @@ const copy = {
   .values dl > div:last-child { border-bottom: 1px solid var(--border); }
   .values dt { font-weight: 500; }
   .values dd { color: var(--text-dim); }
+
+  /* Values as a horizontal strip, pinned while it slides past on wide
+     screens (about-motion.ts sets data-mode). */
+  .values[data-mode='strip'] {
+    max-width: none;
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    padding-inline: 0;
+    overflow: clip;
+  }
+  .values[data-mode='strip'] h2 {
+    max-width: var(--w-wide);
+    width: 100%;
+    margin: 0 auto 2.5rem;
+    padding-inline: var(--gutter);
+  }
+  .values[data-mode='strip'] dl {
+    display: flex;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    width: max-content;
+    padding-inline: max(var(--gutter), calc((100vw - var(--w-wide)) / 2 + var(--gutter)));
+  }
+  .values[data-mode='strip'] dl > div,
+  .values[data-mode='strip'] dl > div:last-child {
+    width: min(30rem, 72vw);
+    min-height: 19rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: space-between;
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+  .values[data-mode='strip'] dt {
+    font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+  .values[data-mode='strip'] dd { font-size: 1.05rem; }
+  .values[data-mode='strip'] dl > div:nth-child(2) { translate: 0 2.5rem; }
+  .values[data-mode='strip'] dl > div:nth-child(3) dt { color: var(--brand); }
+  .values[data-mode='strip'] dl > div:nth-child(4) { translate: 0 -1.5rem; }
+
+  .team-sky {
+    width: min(100%, 34rem);
+    height: auto;
+    margin: 0 auto 1.5rem;
+    overflow: visible;
+  }
+  .team-lines {
+    fill: none;
+    stroke: var(--brand);
+    stroke-width: 1.25;
+  }
+  .team-sky .faint { fill: var(--text-faint); }
+  .team-sky .ring { fill: var(--bg); stroke: var(--border-bright); }
+  .team-sky .star { fill: var(--text); }
 
   /* The team as credits, mirrored around a centre line. */
   .team {
@@ -318,3 +384,7 @@ const copy = {
     .team .role { order: 2; }
   }
 </style>
+
+<script>
+  import './about-motion';
+</script>
