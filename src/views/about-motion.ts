@@ -86,6 +86,8 @@ function strip(section: HTMLElement): void {
         scrub: 0.6,
         invalidateOnRefresh: true,
         anticipatePin: 1,
+        // Refresh pins first, so triggers below are measured after the spacer.
+        refreshPriority: 10,
       },
     });
     gsap.from(dl.children, {

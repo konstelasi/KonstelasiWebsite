@@ -30,7 +30,7 @@ function build(fig: HTMLElement): void {
   const tl = gsap.timeline({
     defaults: { ease: 'power2.out' },
     scrollTrigger: pin
-      ? { trigger: fig, start: 'center center', end: '+=110%', pin: fig.closest('section') ?? fig, scrub: 0.6, anticipatePin: 1 }
+      ? { trigger: fig, start: 'center center', end: '+=110%', pin: fig.closest('section') ?? fig, scrub: 0.6, anticipatePin: 1, refreshPriority: 10 }
       : { trigger: fig, start: 'top 80%', end: 'center 45%', scrub: 0.6 },
   });
 

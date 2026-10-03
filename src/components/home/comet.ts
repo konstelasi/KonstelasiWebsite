@@ -32,41 +32,33 @@ if (essay && motionOn) {
   let length = 1;
   let progress = 0;
 
-  // The path's x is the middle of the gap before the notes on wide screens,
-  // and the left gutter when the notes sit under their paragraphs.
   // A `.reveal` beat that hasn't entered yet sits 1.25rem low, and its
-  // bounding box includes that shift. Taking it off keeps the path on the
+  // bounding box includes that shift. Taking it off keeps the rail on the
   // layout the beat settles into.
   const shift = (el: Element): number => parseFloat(getComputedStyle(el).translate.split(' ')[1] ?? '') || 0;
 
+  const stops = beats.map(() => el('circle', { class: 'comet-stop', r: '3.5' }));
+  rail.after(...stops);
+
+  // One straight line down the gap between the paragraphs and their notes,
+  // with a stop at the top of each beat. On a phone, where the notes sit
+  // under their paragraphs, it runs down the left gutter instead.
   function build(): void {
     const box = essay!.getBoundingClientRect();
     svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
-    // With the notes under their paragraphs the path runs down the left
-    // gutter, which can be as narrow as 1rem on a phone, so it stays inside it.
-    const lane = Math.min(14, box.left / 2);
-    const sway = Math.min(10, lane * 0.6);
-    const pts: Array<[number, number]> = [];
-    beats.forEach((beat, i) => {
-      const note = notes[i];
-      const dy = shift(beat);
-      const b = beat.getBoundingClientRect();
-      const n = note?.getBoundingClientRect();
-      const side = n && n.left > b.left + 40;
-      const x = side && n ? n.left - box.left - 26 : -lane;
-      const s = side ? 10 : sway;
-      pts.push([x + (i % 2 ? s : -s), b.top - dy - box.top + 6]);
-      pts.push([x + (i % 2 ? -s : s), b.bottom - dy - box.top - 6]);
-    });
-    let d = `M ${pts[0][0]} ${pts[0][1]}`;
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
-      const my = (y0 + y1) / 2;
-      d += ` C ${x0} ${my}, ${x1} ${my}, ${x1} ${y1}`;
-    }
+    const side = notes.some((n, i) => n && n.getBoundingClientRect().left > beats[i].getBoundingClientRect().left + 40);
+    const gutter = Math.min(14, box.left / 2);
+    const first = notes.find(Boolean)?.getBoundingClientRect();
+    const x = side && first ? first.left - box.left - 28 : -gutter;
+    const tops = beats.map((beat) => beat.getBoundingClientRect().top - shift(beat) - box.top + 14);
+    const bottom = beats[beats.length - 1].getBoundingClientRect().bottom - shift(beats[beats.length - 1]) - box.top - 6;
+    const d = `M ${x} ${tops[0]} L ${x} ${bottom}`;
     rail.setAttribute('d', d);
     trail.setAttribute('d', d);
+    stops.forEach((c, i) => {
+      c.setAttribute('cx', String(x));
+      c.setAttribute('cy', String(tops[i]));
+    });
     length = trail.getTotalLength();
     trail.style.strokeDasharray = `${length}`;
     place();
@@ -83,7 +75,7 @@ if (essay && motionOn) {
     notes.forEach((note) => {
       if (!note) return;
       const top = note.getBoundingClientRect().top - box.top;
-      note.classList.toggle('lit', p.y >= top - 4);
+      note.classList.toggle('lit', p.y >= top + 8);
     });
     svg.classList.toggle('moving', progress > 0.001 && progress < 0.999);
   }

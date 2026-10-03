@@ -9,9 +9,19 @@
  *   for points that aren't on a connector.
  * - `weight`: brightness, 0 to 1.
  *
+ * A shape also has an `outline`: polylines in the same unit box that trace
+ * what the stars are meant to be. The scene fades them in as the stars gather
+ * and out as they scatter, so the shape reads even before every star is home.
+ *
  * Shapes come from SVG markup (the logo), from text (the 404), or from
  * lines drawn in code (the services system).
  */
+
+export interface Outline {
+  pts: Array<[number, number]>;
+  /** Drawn in the brand violet rather than the text colour. */
+  key: boolean;
+}
 
 export interface Shape {
   count: number;
@@ -21,6 +31,25 @@ export interface Shape {
   key: Float32Array;
   path: Float32Array;
   weight: Float32Array;
+  outline: Outline[];
+}
+
+/**
+ * Where a shape of `aspect` sits when fitted inside `box`, centred, using
+ * `fit` of the room. The scene and any labels laid over the shape both use
+ * it, so they always agree.
+ */
+export function fitRect(aspect: number, box: DOMRect, fit: number): { x: number; y: number; w: number; h: number } {
+  let h: number;
+  let w: number;
+  if (box.width / Math.max(1, box.height) > aspect) {
+    h = box.height * fit;
+    w = h * aspect;
+  } else {
+    w = box.width * fit;
+    h = w / aspect;
+  }
+  return { x: box.left + (box.width - w) / 2, y: box.top + (box.height - h) / 2, w, h };
 }
 
 interface Pt {
@@ -31,7 +60,7 @@ interface Pt {
   weight: number;
 }
 
-function build(points: Pt[], aspect: number): Shape {
+function build(points: Pt[], aspect: number, outline: Outline[] = []): Shape {
   const n = points.length;
   const s: Shape = {
     count: n,
@@ -41,6 +70,7 @@ function build(points: Pt[], aspect: number): Shape {
     key: new Float32Array(n),
     path: new Float32Array(n),
     weight: new Float32Array(n),
+    outline,
   };
   // Shuffle, so the particles that join a shape first are spread over all
   // of it rather than filling it from one corner.
@@ -95,7 +125,42 @@ export function fromSvg(markup: string, n: number): Shape {
       break;
     }
   }
-  return build(points, vw / vh);
+  return build(points, vw / vh, outlineOfSvg(svg, vw, vh));
+}
+
+/**
+ * Traces every contour of an SVG's paths as a polyline in the unit box. The
+ * browser measures the paths, so they are attached to the page, hidden, for
+ * the moment it takes. A faint path (the logo's orbit band) is a violet line.
+ */
+function outlineOfSvg(svg: Element, vw: number, vh: number): Outline[] {
+  const NS = 'http://www.w3.org/2000/svg';
+  const host = document.createElementNS(NS, 'svg');
+  host.setAttribute('width', '0');
+  host.setAttribute('height', '0');
+  host.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none';
+  document.body.appendChild(host);
+  const out: Outline[] = [];
+  const step = vw / 110;
+  for (const el of svg.querySelectorAll('path')) {
+    const key = Number(el.getAttribute('fill-opacity') ?? 1) < 0.5;
+    for (const sub of (el.getAttribute('d') ?? '').match(/M[^M]*/gi) ?? []) {
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', sub);
+      host.appendChild(path);
+      const len = path.getTotalLength();
+      if (len < step * 4) continue;
+      const pts: Array<[number, number]> = [];
+      const n = Math.ceil(len / step);
+      for (let i = 0; i <= n; i++) {
+        const p = path.getPointAtLength((i / n) * len);
+        pts.push([p.x / vw, p.y / vh]);
+      }
+      out.push({ pts, key });
+    }
+  }
+  host.remove();
+  return out;
 }
 
 /** Fills the glyphs of a short text with `n` points. */
@@ -177,7 +242,9 @@ export function fromSegments(segments: Segment[], n: number, aspect: number): Sh
       });
     }
   });
-  return build(points, aspect);
+  // The lines themselves are the outline, without the faint tick marks.
+  const outline = segments.filter((s) => (s.weight ?? 1) >= 0.5).map((s) => ({ pts: s.pts, key: !!s.key }));
+  return build(points, aspect, outline);
 }
 
 /** An ellipse as a closed polyline, for orbits and rings. */

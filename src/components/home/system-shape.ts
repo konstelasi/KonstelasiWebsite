@@ -10,13 +10,38 @@
  */
 import { fromSegments, ellipse, type Segment, type Shape } from '../../motion/shapes';
 
-const ASPECT = 1.15;
-const NODES: Array<[number, number]> = [
+export const ASPECT = 1.15;
+export const NODES: Array<[number, number]> = [
   [0.17, 0.34],
   [0.5, 0.16],
   [0.83, 0.34],
 ];
-const GROUND = 0.84;
+export const GROUND = 0.84;
+
+/** A straight arrow between two nodes, stopping a little short of each ring. */
+function arrow(from: [number, number], to: [number, number], on: boolean): Segment[] {
+  // Work in height units, so a 45 degree line looks like one.
+  const ax = from[0] * ASPECT;
+  const bx = to[0] * ASPECT;
+  const dx = bx - ax;
+  const dy = to[1] - from[1];
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  const stop = 0.075 * ASPECT + 0.02;
+  const sx = ax + ux * stop;
+  const sy = from[1] + uy * stop;
+  const ex = bx - ux * stop;
+  const ey = to[1] - uy * stop;
+  const head = (turn: number): [number, number] => {
+    const a = Math.atan2(uy, ux) + Math.PI + turn;
+    return [(ex + Math.cos(a) * 0.035) / ASPECT, ey + Math.sin(a) * 0.035];
+  };
+  return [
+    { pts: [[sx / ASPECT, sy], [ex / ASPECT, ey]], key: on, pulse: true, weight: 0.9 },
+    { pts: [head(0.5), [ex / ASPECT, ey], head(-0.5)], key: on, weight: 0.9 },
+  ];
+}
 
 function segments(active: number): Segment[] {
   const s: Segment[] = [];
@@ -27,11 +52,9 @@ function segments(active: number): Segment[] {
     s.push({ pts: ellipse(x, y, 0.035, 0.035 * ASPECT, 0, 24), key: on, weight: 1 });
     // Its line down to the ground.
     s.push({ pts: [[x, y + 0.09 * ASPECT], [x, GROUND - 0.02]], key: on, weight: 0.55, pulse: on });
-    // The connector from the previous stage, carrying data into this one.
-    if (i > 0) {
-      const [px, py] = NODES[i - 1];
-      s.push({ pts: [[px + 0.08, py - 0.02], [(px + x) / 2, Math.min(py, y) - 0.06], [x - 0.08, y - 0.02]], key: on, pulse: true, weight: 0.9 });
-    }
+    // The connector from the previous stage, a straight arrow from ring to
+    // ring that carries data into this one.
+    if (i > 0) s.push(...arrow(NODES[i - 1], [x, y], on));
   });
   const ground = active === 3;
   s.push({ pts: [[0.04, GROUND], [0.96, GROUND]], key: ground, pulse: ground, weight: 1 });
@@ -93,5 +116,5 @@ function relight(base: Shape, lit: Shape): Shape {
       weight[i] = base.weight[i];
     }
   }
-  return { ...base, key, path, weight };
+  return { ...base, key, path, weight, outline: lit.outline };
 }

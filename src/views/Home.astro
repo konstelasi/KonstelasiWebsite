@@ -5,6 +5,7 @@ import Constellation from '../components/home/Constellation.astro';
 import ServiceSystem from '../components/home/ServiceSystem.astro';
 import SlotDemo from '../components/home/SlotDemo.astro';
 import ProductOrbit from '../components/home/ProductOrbit.astro';
+import { NODES, GROUND } from '../components/home/system-shape';
 import Status from '../components/Status.astro';
 import { type Lang, ui, localePath } from '../i18n';
 import { ordered, slugOf } from '../lib/content';
@@ -33,6 +34,8 @@ const copy = {
     systemLede: 'Most projects start with one of these and grow into the next. Open one to see what it covers.',
     labTitle: 'Made in our lab',
     labLede: 'Open-source software we design ourselves, use in client work and maintain in public.',
+    spotlightTitle: 'A closer look at StarDust',
+    spotlightLede: 'One product from the lab, shown at work.',
     demoLabel: 'An animation of a StarDust write. The value "software" is copied from the JSON payload into the indexed slot column i_str_01, the value 120 into i_num_01, and the new row is marked as indexed.',
     indexed: 'indexed',
     stardustMore: 'How StarDust works',
@@ -67,6 +70,8 @@ const copy = {
     systemLede: 'Kebanyakan proyek dimulai dari salah satunya, lalu berkembang ke yang berikutnya. Buka salah satu untuk melihat cakupannya.',
     labTitle: 'Dibuat di lab kami',
     labLede: 'Software open source yang kami rancang sendiri, kami pakai di proyek klien, dan kami rawat secara terbuka.',
+    spotlightTitle: 'Lebih dekat dengan StarDust',
+    spotlightLede: 'Satu produk dari lab kami, saat sedang bekerja.',
     demoLabel: 'Animasi proses tulis di StarDust. Nilai "software" disalin dari payload JSON ke kolom slot ber-index i_str_01, nilai 120 ke i_num_01, lalu baris barunya ditandai sudah ter-index.',
     indexed: 'ter-index',
     stardustMore: 'Cara kerja StarDust',
@@ -95,14 +100,6 @@ const copy = {
   },
 }[lang];
 
-// Stars around the band's contact details, on a tilted ring like the logo's.
-const bandStars: Array<[number, number, number]> = Array.from({ length: 26 }, (_, i) => {
-  const a = (i / 26) * Math.PI * 2;
-  const x = 200 + Math.cos(a) * 170 - Math.sin(a) * 18;
-  const y = 145 + Math.sin(a) * 62 + Math.cos(a) * 10;
-  return [Math.round(x), Math.round(y), i % 5 === 0 ? 3 : i % 2 ? 1.6 : 2.2];
-});
-
 const constellationLabels = services.map((s) => s.data.name) as [string, string, string, string];
 ---
 
@@ -127,7 +124,17 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
       <p>{copy.systemLede}</p>
     </header>
     <ServiceSystem lang={lang} services={services} />
-    <div class="what-sky" aria-hidden="true"></div>
+    <div class="what-sky" aria-hidden="true">
+      <div class="what-map" data-map>
+        {services.slice(0, 3).map((_, i) => (
+          <span class="node" data-node={i} style={`--x:${NODES[i][0] * 100}%;--y:${NODES[i][1] * 100}%`}>{i + 1}</span>
+        ))}
+        {services.slice(0, 3).map((sv, i) => (
+          <span class="tag" data-tag={i} style={`--x:${(NODES[i][0] + 0.025) * 100}%;--y:${(GROUND - 0.15) * 100}%`}>{sv.data.name}</span>
+        ))}
+        <span class="tag ground" data-tag="3" style={`--x:50%;--y:${(GROUND + 0.075) * 100}%`}>{services[3].data.name}</span>
+      </div>
+    </div>
   </section>
 
   <section class="lab" aria-labelledby="lab-title">
@@ -144,21 +151,30 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
       </a>
     </div>
 
-    <article class="stardust reveal">
-      <div class="sd-text">
-        <div class="sd-meta">
-          <h3 style="view-transition-name: product-stardust"><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
-          <span class="mono version">v{stardust.data.version}</span>
-          <Status lang={lang} status={stardust.data.status} />
+  </section>
+
+  <section class="spotlight" aria-labelledby="spotlight-title">
+    <div class="spotlight-inner">
+      <header class="spotlight-head reveal">
+        <h2 id="spotlight-title">{copy.spotlightTitle}</h2>
+        <p>{copy.spotlightLede}</p>
+      </header>
+      <article class="stardust reveal">
+        <div class="sd-text">
+          <div class="sd-meta">
+            <h3 style="view-transition-name: product-stardust"><a href={localePath(lang, '/software/stardust/')}>{stardust.data.name}</a></h3>
+            <span class="mono version">v{stardust.data.version}</span>
+            <Status lang={lang} status={stardust.data.status} />
+          </div>
+          <p class="sd-summary">{stardust.data.summary}</p>
+          <a class="go" href={localePath(lang, '/software/stardust/')}>
+            {copy.stardustMore}
+            <Icon name="lucide:arrow-right" aria-hidden="true" />
+          </a>
         </div>
-        <p class="sd-summary">{stardust.data.summary}</p>
-        <a class="go" href={localePath(lang, '/software/stardust/')}>
-          {copy.stardustMore}
-          <Icon name="lucide:arrow-right" aria-hidden="true" />
-        </a>
-      </div>
-      <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
-    </article>
+        <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
+      </article>
+    </div>
   </section>
 
   <section class="work" aria-labelledby="work-title">
@@ -175,13 +191,20 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
 
   <section class="band" aria-label={t.nav.contact}>
     <div class="aurora" aria-hidden="true"></div>
-    <svg class="band-stars" viewBox="0 0 400 260" aria-hidden="true" data-band-stars>
-      <path class="band-ring" d="M 30 150 C 30 70, 370 60, 370 120 C 370 190, 30 220, 30 150" pathLength="1" />
-      {bandStars.map(([x, y, r]) => <circle cx={x} cy={y} r={r} />)}
-    </svg>
     <div class="band-inner reveal">
       <p class="band-line" data-split="words">{copy.closing}</p>
       <div class="band-contact">
+        <svg class="band-send" viewBox="0 0 140 96" aria-hidden="true" data-send>
+          <path class="send-route" d="M10 14 L70 56 L130 14 L130 82 L10 82 Z" />
+          <path class="send-body" d="M10 14 H130 V82 H10 Z" />
+          <path class="send-flap" d="M10 14 L70 56 L130 14" />
+          <circle class="send-star" cx="10" cy="14" r="3.4" />
+          <circle class="send-star" cx="130" cy="14" r="3.4" />
+          <circle class="send-star" cx="130" cy="82" r="3.4" />
+          <circle class="send-star" cx="10" cy="82" r="3.4" />
+          <circle class="send-star" cx="70" cy="56" r="3.4" />
+          <circle class="send-packet" r="4.5" />
+        </svg>
         <a class="band-mail" href={`mailto:${contact.email}`}>{contact.email}</a>
         <p>
           <a href={contact.phoneHref}>{contact.phoneDisplay}</a>
@@ -198,6 +221,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
   section {
     padding-inline: var(--gutter);
   }
+  .work { padding-top: clamp(4rem, 10vh, 7rem); }
 
   /* Opening. A left-aligned statement in very large type, with the
      constellation bleeding off the right edge. */
@@ -286,7 +310,38 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
   /* The pinned sequence (src/components/home/home-motion.ts sets
      data-mode). The stages stack on the left and open one by one, and the
      stars draw the system on the right. */
-  .what-sky { display: none; }
+  .what-sky { display: none; position: relative; }
+  /* Labels over the stars, so the shape they draw reads as the system it
+     is. home-motion.ts sizes the map to the fitted shape every frame. */
+  .what-map {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .what-map .node,
+  .what-map .tag {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    color: var(--text-faint);
+    transition: color 0.3s var(--ease);
+  }
+  .what-map .node {
+    translate: -50% -50%;
+    font: 500 0.85rem/1 var(--mono);
+  }
+  .what-map .tag {
+    width: 21%;
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+  .what-map .tag.ground {
+    width: auto;
+    translate: -50% 0;
+    white-space: nowrap;
+  }
+  .what-map .on { color: var(--text); }
+  .what-map .node.on { color: var(--brand); }
   .what[data-mode='sequence'] {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
@@ -321,7 +376,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     margin: 0 auto;
     display: grid;
     gap: clamp(2.5rem, 6vh, 4rem);
-    padding-bottom: clamp(5rem, 12vh, 9rem);
+    padding-bottom: clamp(4rem, 9vh, 6rem);
   }
   .orbit-wrap {
     display: grid;
@@ -337,13 +392,35 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
   .lab-head h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); }
   .lab-head p { color: var(--text-dim); }
 
+  /* StarDust gets its own band, so it reads as a closer look at one product
+     rather than a fifth item in the list above it. */
+  .spotlight {
+    padding-inline: 0;
+    background: var(--bg-raised);
+    border-block: 1px solid var(--border);
+  }
+  .spotlight-inner {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding: clamp(3rem, 8vh, 5rem) var(--gutter);
+    display: grid;
+    gap: 2rem;
+  }
+  .spotlight-head {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 36rem;
+  }
+  .spotlight-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+  .spotlight-head p { color: var(--text-dim); }
+
   .stardust {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
     gap: 1.5rem clamp(1.5rem, 4vw, 3.5rem);
     align-items: center;
     padding: clamp(1.25rem, 3vw, 2.25rem);
-    background: var(--bg-raised);
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
@@ -410,7 +487,11 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     fill: none;
     stroke: var(--border-bright);
     stroke-width: 1;
-    stroke-dasharray: 2 6;
+  }
+  .essay :global(.comet-stop) {
+    fill: var(--bg);
+    stroke: var(--border-hover);
+    stroke-width: 1.25;
   }
   .essay :global(.comet-trail) {
     fill: none;
@@ -481,22 +562,26 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     50% { transform: translate(5%, 4%) rotate(8deg) scale(1.08); }
     100% { transform: translate(-2%, 6%) rotate(-6deg) scale(1.02); }
   }
-  .band-stars {
-    position: absolute;
-    right: max(-4rem, calc((100% - var(--w-wide)) / 2 - 4rem));
-    bottom: 1.5rem;
-    width: min(48vw, 34rem);
+  /* An envelope drawn as a small constellation, above the email address. A
+     star keeps travelling around it (band-motion.ts), the way a message
+     goes out. */
+  .band-send {
+    width: 8.5rem;
     height: auto;
-    z-index: -1;
+    margin-bottom: 0.75rem;
     overflow: visible;
   }
-  .band-stars circle { fill: var(--on-brand-dim); opacity: 0.7; }
-  .band-ring {
+  .send-route { fill: none; stroke: none; }
+  .send-body,
+  .send-flap {
     fill: none;
     stroke: var(--on-brand-dim);
-    stroke-width: 0.75;
-    opacity: 0.35;
+    stroke-width: 1;
+    stroke-linejoin: round;
+    opacity: 0.6;
   }
+  .send-star { fill: var(--on-brand-dim); }
+  .send-packet { fill: var(--on-brand-fill); }
   .band-inner {
     max-width: var(--w-wide);
     margin: 0 auto;

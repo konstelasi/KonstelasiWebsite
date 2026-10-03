@@ -81,11 +81,13 @@ const base = services[3];
     transition: grid-template-columns 0.55s var(--ease-out);
   }
 
-  /* The open stage takes most of the row. */
+  /* The open stage takes most of the row. Not in the pinned home sequence,
+     where the stages stack: these selectors are more specific than the
+     sequence's own, so they must step aside by name. */
   @media (min-width: 52rem) {
-    .system:has(.stage:nth-child(1)[open]) .stages { grid-template-columns: 2.4fr 1fr 1fr; }
-    .system:has(.stage:nth-child(2)[open]) .stages { grid-template-columns: 1fr 2.4fr 1fr; }
-    .system:has(.stage:nth-child(3)[open]) .stages { grid-template-columns: 1fr 1fr 2.4fr; }
+    :global(.what:not([data-mode='sequence'])) .system:has(.stage:nth-child(1)[open]) .stages { grid-template-columns: 2.4fr 1fr 1fr; }
+    :global(.what:not([data-mode='sequence'])) .system:has(.stage:nth-child(2)[open]) .stages { grid-template-columns: 1fr 2.4fr 1fr; }
+    :global(.what:not([data-mode='sequence'])) .system:has(.stage:nth-child(3)[open]) .stages { grid-template-columns: 1fr 1fr 2.4fr; }
   }
 
   .stage {

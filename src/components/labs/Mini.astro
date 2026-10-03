@@ -34,7 +34,6 @@ const toD = (pts: ReadonlyArray<readonly [number, number]>): string => pts.map((
 
   {kind === 'starcore' && (
     <g>
-      <rect class="kernel" x="128" y="34" width="64" height="44" rx="8" />
       {[
         [40, 20], [40, 70], [240, 20], [240, 70],
       ].map(([x, y], i) => (
@@ -43,6 +42,8 @@ const toD = (pts: ReadonlyArray<readonly [number, number]>): string => pts.map((
           <rect class="mod" x={x} y={y} width="40" height="22" rx="4" />
         </g>
       ))}
+      <rect class="kernel-bg" x="128" y="34" width="64" height="44" rx="8" />
+      <rect class="kernel" x="128" y="34" width="64" height="44" rx="8" />
     </g>
   )}
 
@@ -78,6 +79,7 @@ const toD = (pts: ReadonlyArray<readonly [number, number]>): string => pts.map((
   }
   .cell { fill: none; stroke: var(--border-bright); stroke-dasharray: 3 3; }
   .fill { fill: var(--brand-soft); stroke: var(--brand); }
+  .kernel-bg { fill: var(--bg); }
   .kernel { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.5; }
   .mod { fill: var(--bg); stroke: var(--border-hover); }
   .wire { stroke: var(--brand); stroke-width: 1.25; }

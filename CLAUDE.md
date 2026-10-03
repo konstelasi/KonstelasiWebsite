@@ -40,6 +40,8 @@ How it's built:
 - The inline script in Base.astro adds `motion` to `<html>` before paint, and removes it again if `ready()` hasn't added `motion-ready` within 3 s. CSS keyed on `.motion` may hide things that are about to animate in; CSS keyed on `.motion-ready` may switch off a CSS fallback that JS now drives.
 - Headings get `data-split="lines" | "words" | "chars"` (`src/motion/type.ts`). Vary the variant between neighbouring sections.
 - `src/motion/scene.ts` is the star field (OGL). Pages ask it to `assemble(shape, anchor)` and set `form` 0 to 1. Shapes come from `src/motion/shapes.ts` (SVG paths, text, or segments drawn in code). Swap a shape only while `form` is near 0, or the stars jump. `src/components/home/home-motion.ts` is the pattern for a director that decides which shape the sky holds.
+- Constellation lines in the sky are a few real figures from `src/motion/constellations.ts`, placed among the loose stars, so only some of the sky forms a constellation. A figure's stars share one depth so they move together, and each line fades when its stars are pulled apart. Never join stars by proximity again: stars at different depths drift apart and the lines turn into long strokes.
+- Every `Shape` has an `outline` (unit-box polylines). The scene draws it as the stars gather and fades it out as they scatter, so the viewer can tell what the stars form. A new shape needs one. Text laid over a shape (the services labels) uses `fitRect` from `shapes.ts`, the same fit the scene uses.
 - Page and component motion lives next to its markup, as a `*-motion.ts` file imported from the `.astro` file's `<script>`.
 
 ## Writing style
@@ -73,6 +75,9 @@ Every human-read text here (page copy, content files, code comments, README) fol
 - HTML comments in an `.astro` template and in SVG files imported as components ship to the browser. Put notes in frontmatter comments instead.
 - Lenis runs with `anchors: false` so the skip link keeps moving focus. SplitText uses `tag: 'span'` so a split link stays valid HTML.
 - `view-transition-name` must be unique on a page, or the browser skips the transition. `h1` gets `page-title`, product names carry `product-<slug>` inline, and only one element per page may carry each.
+- Every pin sets `refreshPriority: 10`. Triggers created before a pin (the orbit, the comet, the headings) are otherwise measured without the pin's scroll length and fire thousands of pixels early, which looks like animations that never run. After adding a pin, scroll below it in a browser and check that the scroll-linked parts below still move.
+- Never set `display: flex` or `grid` on an element that has `data-split`, or on a rule that reaches one (`.band p` once did). SplitText turns every word into a child, and a flex row then puts the whole line on one row.
+- A `:has()` rule in a component can outrank a sequence override that sits on an ancestor. Gate it with `:not([data-mode='sequence'])` on that ancestor rather than raising specificity.
 - Pinned sections (home services, About values, product diagrams) are created after layout settles. Call `ScrollTrigger.refresh()` after creating a pin, so every trigger below it accounts for the spacer.
 - `motion-ready` is only set with motion on. Don't key a reduced-motion final state on it.
 - Expected build warnings: the empty `portfolio` collection and the missing `src/icons/` folder. Anything else is new.

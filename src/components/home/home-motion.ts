@@ -17,12 +17,13 @@
 import logoSvg from '../../assets/konstelasi-logo.svg?raw';
 import { gsap, ScrollTrigger, afterFonts } from '../../motion/core';
 import { getScene } from '../../motion/scene';
-import { fromSvg, type Shape } from '../../motion/shapes';
-import { systemShapes } from './system-shape';
+import { fitRect, fromSvg, type Shape } from '../../motion/shapes';
+import { ASPECT, systemShapes } from './system-shape';
 
 const opening = document.querySelector<HTMLElement>('.opening');
 const what = document.querySelector<HTMLElement>('.what');
 const whatSky = document.querySelector<HTMLElement>('.what-sky');
+const map = document.querySelector<HTMLElement>('[data-map]');
 
 async function start(): Promise<void> {
   const scene = await getScene();
@@ -63,6 +64,11 @@ async function start(): Promise<void> {
       end: '+=280%',
       pin: true,
       anticipatePin: 1,
+      // Pins refresh first, so every trigger further down the page is
+      // measured with the pin's scroll length already added. Without it the
+      // orbit, the comet and the headings below fire thousands of pixels
+      // early, because they were created before this pin existed.
+      refreshPriority: 10,
       onUpdate(self) {
         const next = Math.min(3, Math.floor(self.progress * 4.4 - 0.2));
         const s = Math.max(0, next);
@@ -81,9 +87,11 @@ async function start(): Promise<void> {
   });
 
   let held: Shape | null = null;
+  let lit = -2;
   const smooth = { form: 0 };
   gsap.ticker.add(() => {
     let want: Shape = mark;
+    let active = -1;
     let anchor: Element | (() => DOMRect) = markAnchor;
     let form = intro.v * (1 - leave.progress);
     let fit = 0.82;
@@ -92,7 +100,7 @@ async function start(): Promise<void> {
       const p = seq.progress;
       // Form over the first tenth, hold, and break apart over the last.
       const f = Math.min(1, p / 0.1) * Math.min(1, (1 - p) / 0.1);
-      const active = Math.max(0, Math.min(3, Math.floor(p * 4.4 - 0.2)));
+      active = Math.max(0, Math.min(3, Math.floor(p * 4.4 - 0.2)));
       want = system[active];
       anchor = whatSky;
       form = f;
@@ -116,6 +124,27 @@ async function start(): Promise<void> {
     smooth.form += (target - smooth.form) * (target === 0 && form > 0 ? 0.2 : 0.12);
     scene.form = smooth.form;
     scene.burst = held === mark ? 1 : 0.5;
+
+    // The labels ride on the fitted system shape and follow its highlight.
+    if (map) {
+      const showing = active >= 0 && held !== null && system.includes(held);
+      if (showing) {
+        const box = whatSky.getBoundingClientRect();
+        const f = fitRect(ASPECT, box, 0.95);
+        map.style.left = `${f.x - box.left}px`;
+        map.style.top = `${f.y - box.top}px`;
+        map.style.width = `${f.w}px`;
+        map.style.height = `${f.h}px`;
+      }
+      map.style.opacity = showing ? String(Math.max(0, Math.min(1, (smooth.form - 0.4) / 0.5))) : '0';
+      if (showing && active !== lit) {
+        lit = active;
+        map.querySelectorAll('[data-node], [data-tag]').forEach((el) => {
+          const i = Number((el as HTMLElement).dataset.node ?? (el as HTMLElement).dataset.tag);
+          el.classList.toggle('on', i === active);
+        });
+      }
+    }
   });
 }
 

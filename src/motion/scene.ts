@@ -15,7 +15,8 @@
  */
 import { Renderer, Geometry, Program, Mesh, Transform } from 'ogl';
 import { gsap, motionOn, finePointer } from './core';
-import type { Shape } from './shapes';
+import { fitRect, type Shape } from './shapes';
+import { constellations } from './constellations';
 
 const VERTEX = /* glsl */ `
 attribute vec3 position;
@@ -71,6 +72,33 @@ void main() {
   gl_FragColor = vec4(uColor * a, a);
 }`;
 
+// Outlines are plain lines from a fixed list of unit-box points, placed on the
+// screen from the shape's fitted rectangle each frame.
+const OUTLINE_VERTEX = /* glsl */ `
+attribute vec3 position;
+attribute float aKey;
+uniform vec2 uResolution;
+varying float vKey;
+void main() {
+  vec2 clip = position.xy / uResolution * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  vKey = aKey;
+}`;
+
+const OUTLINE_FRAGMENT = /* glsl */ `
+precision highp float;
+uniform vec3 uColor;
+uniform vec3 uKeyColor;
+uniform float uOutlineAlpha;
+varying float vKey;
+void main() {
+  float a = uOutlineAlpha;
+  gl_FragColor = vec4(mix(uColor, uKeyColor, vKey) * a, a);
+}`;
+
+/** The most outline segments the scene will draw for one shape. */
+const MAX_OUTLINE = 2600;
+
 type Anchor = Element | (() => DOMRect);
 
 export interface Scene {
@@ -115,18 +143,22 @@ function create(): Scene | null {
   // (0 far, 1 near) and its stagger when joining a shape.
   const skyX = new Float32Array(N);
   const skyY = new Float32Array(N);
+  const homeX = new Float32Array(N);
+  const homeY = new Float32Array(N);
   const depth = new Float32Array(N);
   const baseDepth = new Float32Array(N);
   const stagger = new Float32Array(N);
   const twinkle = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    skyX[i] = Math.random();
-    skyY[i] = Math.random();
+    homeX[i] = Math.random();
+    homeY[i] = Math.random();
     baseDepth[i] = Math.pow(Math.random(), 2.2);
     stagger[i] = Math.random() * 0.55;
     twinkle[i] = Math.random() * Math.PI * 2;
   }
   depth.set(baseDepth);
+  skyX.set(homeX);
+  skyY.set(homeY);
 
   const position = new Float32Array(N * 3);
   const size = new Float32Array(N);
@@ -140,17 +172,17 @@ function create(): Scene | null {
     aKey: { size: 1, data: key },
   });
 
-  // Constellations: a few short chains of neighbouring stars, drawn as lines.
-  // A chain only joins stars that sit a sensible distance apart on screen, and
-  // every star of a chain shares one depth, so they drift and scroll together
-  // and the lines keep their shape. Each frame a line still checks its own
-  // length, and fades out when its stars have been pulled apart (while a shape
-  // forms or when one star wraps around the edge of the sky).
-  const L = Math.min(N, 200);
+  // Constellations. A handful of real figures (see constellations.ts) are
+  // placed among the loose stars, so some of the sky reads as a constellation
+  // and the rest stays plain stars. Each figure's stars share one depth, so
+  // they drift and scroll together and keep their shape. Each frame a line
+  // still checks its own length, and fades out when its stars are pulled apart
+  // (while a shape forms, or when one star wraps around the edge of the sky).
+  const MAX_LINKS = 80;
   const links: number[] = [];
   const restLength: number[] = [];
-  const linePos = new Float32Array(L * 2 * 3);
-  const lineAlpha = new Float32Array(L * 2);
+  const linePos = new Float32Array(MAX_LINKS * 2 * 3);
+  const lineAlpha = new Float32Array(MAX_LINKS * 2);
   const lines = new Geometry(gl, {
     position: { size: 3, data: linePos },
     aAlpha: { size: 1, data: lineAlpha },
@@ -160,46 +192,48 @@ function create(): Scene | null {
     const W = window.innerWidth;
     const H = window.innerHeight;
     depth.set(baseDepth);
+    skyX.set(homeX);
+    skyY.set(homeY);
     links.length = 0;
     restLength.length = 0;
-    const px = (i: number): number => skyX[i] * W;
-    const py = (i: number): number => skyY[i] * H;
-    const minGap = 46;
-    const maxGap = Math.min(190, Math.max(110, W * 0.13));
-    const wanted = Math.max(2, Math.round((W * H) / 95000));
-    const taken = new Set<number>();
-    let made = 0;
-    for (let start = 0; start < L && made < wanted; start++) {
-      if (taken.has(start)) continue;
-      const chain = [start];
-      const goal = 3 + Math.floor(Math.random() * 3);
-      while (chain.length < goal) {
-        const tail = chain[chain.length - 1];
-        let best = -1;
-        let bestD = Infinity;
-        for (let j = 0; j < L; j++) {
-          if (j === tail || taken.has(j) || chain.includes(j)) continue;
-          const d = Math.hypot(px(j) - px(tail), py(j) - py(tail));
-          if (d >= minGap && d <= maxGap && d < bestD) {
-            best = j;
-            bestD = d;
-          }
-        }
-        if (best < 0) break;
-        chain.push(best);
+
+    const wide = W >= 900;
+    const wanted = Math.max(2, Math.min(5, Math.round((W * H) / 260000)));
+    const pool = [...constellations].sort(() => Math.random() - 0.5).slice(0, wanted);
+    const centres: Array<[number, number]> = [];
+    let next = 0;
+    for (const c of pool) {
+      // A figure's size on screen and its tilt, and a spot a good way from
+      // the others.
+      const width = (wide ? 170 : 120) * (0.85 + Math.random() * 0.5) * (c.w > 80 ? 1 : 0.7);
+      const k = width / c.w;
+      const turn = (Math.random() - 0.5) * 0.9;
+      let cx = 0;
+      let cy = 0;
+      for (let tries = 0; tries < 14; tries++) {
+        cx = W * (0.12 + Math.random() * 0.76);
+        cy = H * (0.12 + Math.random() * 0.76);
+        if (centres.every(([ox, oy]) => Math.hypot(ox - cx, oy - cy) > Math.min(W, H) * 0.42)) break;
       }
-      if (chain.length < 3) continue;
-      if (links.length / 2 + chain.length - 1 > L) break;
-      const z = 0.45 + Math.random() * 0.45;
-      chain.forEach((s, k) => {
-        taken.add(s);
-        depth[s] = z;
-        if (k > 0) {
-          links.push(chain[k - 1], s);
-          restLength.push(Math.hypot(px(s) - px(chain[k - 1]), py(s) - py(chain[k - 1])));
-        }
+      centres.push([cx, cy]);
+      const z = 0.55 + Math.random() * 0.35;
+      const ids = c.stars.map(([sx, sy]) => {
+        const i = next++;
+        const dx = (sx - c.w / 2) * k;
+        const dy = (sy - c.h / 2) * k;
+        const x = cx + dx * Math.cos(turn) - dy * Math.sin(turn);
+        const y = cy + dx * Math.sin(turn) + dy * Math.cos(turn);
+        // The sky draws a star at skyX * (W + 80) - 40, so undo that here.
+        skyX[i] = (x + 40) / (W + 80);
+        skyY[i] = (y + 40) / (H + 80);
+        depth[i] = z;
+        return i;
       });
-      made++;
+      for (const [a, b] of c.edges) {
+        if (links.length / 2 >= MAX_LINKS) break;
+        links.push(ids[a], ids[b]);
+        restLength.push(Math.hypot((skyX[ids[a]] - skyX[ids[b]]) * (W + 80), (skyY[ids[a]] - skyY[ids[b]]) * (H + 80)));
+      }
     }
   }
   buildConstellations();
@@ -210,11 +244,21 @@ function create(): Scene | null {
     uColor: { value: [1, 1, 1] },
     uKeyColor: { value: [0.7, 0.6, 0.86] },
     uLineAlpha: { value: 0.2 },
+    uOutlineAlpha: { value: 0 },
   };
   const common = { uniforms, transparent: true, depthTest: false, depthWrite: false };
   const pointProgram = new Program(gl, { ...common, vertex: VERTEX, fragment: POINT_FRAGMENT });
   const lineProgram = new Program(gl, { ...common, vertex: LINE_VERTEX, fragment: LINE_FRAGMENT });
+  const outlineProgram = new Program(gl, { ...common, vertex: OUTLINE_VERTEX, fragment: OUTLINE_FRAGMENT });
+  const outlinePos = new Float32Array(MAX_OUTLINE * 2 * 3);
+  const outlineKey = new Float32Array(MAX_OUTLINE * 2);
+  const outlineGeometry = new Geometry(gl, {
+    position: { size: 3, data: outlinePos },
+    aKey: { size: 1, data: outlineKey },
+  });
   const root = new Transform();
+  const outlineMesh = new Mesh(gl, { geometry: outlineGeometry, program: outlineProgram, mode: gl.LINES });
+  outlineMesh.setParent(root);
   new Mesh(gl, { geometry: lines, program: lineProgram, mode: gl.LINES }).setParent(root);
   new Mesh(gl, { geometry: points, program: pointProgram, mode: gl.POINTS }).setParent(root);
 
@@ -225,7 +269,7 @@ function create(): Scene | null {
     dark = css.colorScheme.includes('dark');
     uniforms.uColor.value = hexToRgb(css.getPropertyValue('--text'));
     uniforms.uKeyColor.value = hexToRgb(css.getPropertyValue('--brand'));
-    for (const p of [pointProgram, lineProgram]) {
+    for (const p of [pointProgram, lineProgram, outlineProgram]) {
       if (dark) p.setBlendFunc(gl.ONE, gl.ONE);
       else p.setBlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
@@ -265,6 +309,10 @@ function create(): Scene | null {
   // constellation lines can leave with the stars they join.
   const joined = new Float32Array(N);
 
+  // The current shape's outline, as unit-box segment endpoints.
+  const outlineUnit = new Float32Array(MAX_OUTLINE * 4);
+  let outlineCount = 0;
+
   let shape: Shape | null = null;
   let anchor: Anchor | null = null;
   let fit = 0.9;
@@ -279,6 +327,21 @@ function create(): Scene | null {
       shape = next;
       anchor = where;
       fit = f;
+      // Flatten the outline into segment endpoints in the unit box, once.
+      let n = 0;
+      for (const o of next.outline) {
+        for (let i = 1; i < o.pts.length && n < MAX_OUTLINE; i++, n++) {
+          const [x0, y0] = o.pts[i - 1];
+          const [x1, y1] = o.pts[i];
+          outlineUnit[n * 4] = x0;
+          outlineUnit[n * 4 + 1] = y0;
+          outlineUnit[n * 4 + 2] = x1;
+          outlineUnit[n * 4 + 3] = y1;
+          outlineKey[n * 2] = outlineKey[n * 2 + 1] = o.key ? 1 : 0;
+        }
+      }
+      outlineCount = n;
+      outlineGeometry.attributes.aKey.needsUpdate = true;
     },
   };
 
@@ -298,17 +361,11 @@ function create(): Scene | null {
     let rw = 0;
     let rh = 0;
     if (shape && anchor && scene.form > 0.001) {
-      const r = typeof anchor === 'function' ? anchor() : anchor.getBoundingClientRect();
-      const boxAspect = r.width / Math.max(1, r.height);
-      if (boxAspect > shape.aspect) {
-        rh = r.height * fit;
-        rw = rh * shape.aspect;
-      } else {
-        rw = r.width * fit;
-        rh = rw / shape.aspect;
-      }
-      rx = r.left + (r.width - rw) / 2;
-      ry = r.top + (r.height - rh) / 2;
+      const f = fitRect(shape.aspect, typeof anchor === 'function' ? anchor() : anchor.getBoundingClientRect(), fit);
+      rx = f.x;
+      ry = f.y;
+      rw = f.w;
+      rh = f.h;
     }
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
@@ -405,7 +462,22 @@ function create(): Scene | null {
       lineAlpha[k * 2] = a01;
       lineAlpha[k * 2 + 1] = a01;
     }
-    uniforms.uLineAlpha.value = (dark ? 0.2 : 0.16) * scene.presence;
+    // The outline arrives as the stars gather and leaves as they scatter.
+    const gather = clamp01((scene.form - 0.2) / 0.7);
+    const outlineAlpha = gather * gather * (dark ? 0.6 : 0.55) * scene.presence;
+    outlineMesh.visible = outlineAlpha > 0.003 && outlineCount > 0 && rw > 0;
+    if (outlineMesh.visible) {
+      for (let n = 0; n < outlineCount; n++) {
+        outlinePos[n * 6] = rx + outlineUnit[n * 4] * rw;
+        outlinePos[n * 6 + 1] = ry + outlineUnit[n * 4 + 1] * rh;
+        outlinePos[n * 6 + 3] = rx + outlineUnit[n * 4 + 2] * rw;
+        outlinePos[n * 6 + 4] = ry + outlineUnit[n * 4 + 3] * rh;
+      }
+      outlineGeometry.setDrawRange(0, outlineCount * 2);
+      outlineGeometry.attributes.position.needsUpdate = true;
+    }
+    uniforms.uOutlineAlpha.value = outlineAlpha;
+    uniforms.uLineAlpha.value = (dark ? 0.3 : 0.26) * scene.presence;
     lines.attributes.position.needsUpdate = true;
     lines.attributes.aAlpha.needsUpdate = true;
     points.attributes.position.needsUpdate = true;
