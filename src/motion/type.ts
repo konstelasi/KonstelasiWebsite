@@ -53,19 +53,24 @@ export function initType(): void {
   if (!motionOn) return;
   document.querySelectorAll<HTMLElement>('[data-split]').forEach((el) => {
     const variant = (el.dataset.split as Variant) || 'lines';
-    SplitText.create(el, {
-      type: variant === 'chars' ? 'words,chars' : variant,
-      mask: variant === 'lines' ? 'lines' : undefined,
-      linesClass: 'line',
-      // Spans, not the default divs, so a split link stays valid HTML.
-      tag: 'span',
-      aria: 'auto',
-      autoSplit: true,
-      onSplit(self) {
-        el.classList.add('split-ready');
-        return animate(variant, self, el);
-      },
-    });
+    try {
+      SplitText.create(el, {
+        type: variant === 'chars' ? 'words,chars' : variant,
+        mask: variant === 'lines' ? 'lines' : undefined,
+        linesClass: 'line',
+        // Spans, not the default divs, so a split link stays valid HTML.
+        tag: 'span',
+        aria: 'auto',
+        autoSplit: true,
+        onSplit(self) {
+          el.classList.add('split-ready');
+          return animate(variant, self, el);
+        },
+      });
+    } catch {
+      // A heading that can't be split just shows, instead of staying hidden.
+      el.classList.add('split-ready');
+    }
   });
   ScrollTrigger.refresh();
 }

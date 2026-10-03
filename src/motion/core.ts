@@ -53,7 +53,7 @@ export function afterFonts(fn: () => void): void {
     done = true;
     fn();
   };
-  if (document.fonts?.status === 'loaded') return once();
+  if (!document.fonts || document.fonts.status === 'loaded') return once();
   document.fonts.ready.then(once, once);
   window.setTimeout(once, 1500);
 }

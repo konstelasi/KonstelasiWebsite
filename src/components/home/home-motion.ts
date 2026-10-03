@@ -51,7 +51,9 @@ async function start(): Promise<void> {
   let seq: ScrollTrigger | null = null;
   const stages = [...what.querySelectorAll<HTMLDetailsElement>('details')];
   const mm = gsap.matchMedia();
-  mm.add('(min-width: 62rem)', () => {
+  // Wide and tall enough that the stage list fits inside the pinned screen.
+  // A short window keeps the plain, clickable system diagram instead.
+  mm.add('(min-width: 62rem) and (min-height: 44rem)', () => {
     what.dataset.mode = 'sequence';
     system = system.length ? system : systemShapes(Math.min(scene.count, 950));
     let step = -1;
@@ -97,19 +99,22 @@ async function start(): Promise<void> {
       fit = 0.95;
     }
 
-    smooth.form += (form - smooth.form) * 0.12;
+    let target = form;
     if (want !== held) {
       // A different stage of the same system only moves the highlight, so
-      // it can switch at any time. Anything else waits for loose stars.
+      // it can switch at any time. Anything else waits for loose stars. While
+      // it waits, the shape on show lets go (target 0), so a fast scroll that
+      // lands mid-sequence can't leave the stars holding the wrong shape.
       const sameSystem = system.includes(want) && held !== null && system.includes(held);
       if (sameSystem || smooth.form < 0.02) {
         scene.assemble(want, anchor, fit);
         held = want;
       } else {
-        smooth.form += (0 - smooth.form) * 0.2;
+        target = 0;
       }
     }
-    scene.form = held === want ? smooth.form : Math.min(scene.form, smooth.form);
+    smooth.form += (target - smooth.form) * (target === 0 && form > 0 ? 0.2 : 0.12);
+    scene.form = smooth.form;
     scene.burst = held === mark ? 1 : 0.5;
   });
 }

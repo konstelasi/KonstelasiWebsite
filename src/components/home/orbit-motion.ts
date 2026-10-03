@@ -37,7 +37,10 @@ if (root && motionOn) {
       const bring = (): void => {
         // The rotation that puts moon i at the front (angle pi/2).
         const delta = wrap(-i * step - (spin.scroll + spin.offset));
-        gsap.to(spin, { offset: spin.offset + delta, duration: 1.1, ease: 'power3.inOut', overwrite: true });
+        // `auto` only replaces an earlier pull on `offset`. `true` would kill
+        // every tween on `spin`, the scroll-driven one included, and the
+        // orbit would stop turning with the page after the first hover.
+        gsap.to(spin, { offset: spin.offset + delta, duration: 1.1, ease: 'power3.inOut', overwrite: 'auto' });
       };
       li.addEventListener('pointerenter', bring);
       li.addEventListener('focusin', bring);

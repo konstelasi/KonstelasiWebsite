@@ -34,18 +34,29 @@ if (essay && motionOn) {
 
   // The path's x is the middle of the gap before the notes on wide screens,
   // and the left gutter when the notes sit under their paragraphs.
+  // A `.reveal` beat that hasn't entered yet sits 1.25rem low, and its
+  // bounding box includes that shift. Taking it off keeps the path on the
+  // layout the beat settles into.
+  const shift = (el: Element): number => parseFloat(getComputedStyle(el).translate.split(' ')[1] ?? '') || 0;
+
   function build(): void {
     const box = essay!.getBoundingClientRect();
     svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    // With the notes under their paragraphs the path runs down the left
+    // gutter, which can be as narrow as 1rem on a phone, so it stays inside it.
+    const lane = Math.min(14, box.left / 2);
+    const sway = Math.min(10, lane * 0.6);
     const pts: Array<[number, number]> = [];
     beats.forEach((beat, i) => {
       const note = notes[i];
+      const dy = shift(beat);
       const b = beat.getBoundingClientRect();
       const n = note?.getBoundingClientRect();
       const side = n && n.left > b.left + 40;
-      const x = side && n ? n.left - box.left - 26 : -14;
-      pts.push([x + (i % 2 ? 10 : -10), b.top - box.top + 6]);
-      pts.push([x + (i % 2 ? -10 : 10), b.bottom - box.top - 6]);
+      const x = side && n ? n.left - box.left - 26 : -lane;
+      const s = side ? 10 : sway;
+      pts.push([x + (i % 2 ? s : -s), b.top - dy - box.top + 6]);
+      pts.push([x + (i % 2 ? -s : s), b.bottom - dy - box.top - 6]);
     });
     let d = `M ${pts[0][0]} ${pts[0][1]}`;
     for (let i = 1; i < pts.length; i++) {

@@ -48,6 +48,19 @@ void main() {
   gl_FragColor = vec4(mix(uColor, uKeyColor, vKey) * a, a);
 }`;
 
+// Lines carry their own alpha per vertex, worked out on the CPU, so a
+// constellation fades as a whole and never stretches across the screen.
+const LINE_VERTEX = /* glsl */ `
+attribute vec3 position;
+attribute float aAlpha;
+uniform vec2 uResolution;
+varying float vAlpha;
+void main() {
+  vec2 clip = position.xy / uResolution * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  vAlpha = aAlpha;
+}`;
+
 const LINE_FRAGMENT = /* glsl */ `
 precision highp float;
 uniform vec3 uColor;
@@ -97,22 +110,23 @@ function create(): Scene | null {
   document.body.prepend(canvas);
 
   const N = window.innerWidth >= 900 ? 1400 : 650;
-  const rnd = (a: number, b: number): number => a + Math.random() * (b - a);
 
   // Each star's place in the sky, in viewport-relative units, its depth
   // (0 far, 1 near) and its stagger when joining a shape.
   const skyX = new Float32Array(N);
   const skyY = new Float32Array(N);
   const depth = new Float32Array(N);
+  const baseDepth = new Float32Array(N);
   const stagger = new Float32Array(N);
   const twinkle = new Float32Array(N);
   for (let i = 0; i < N; i++) {
     skyX[i] = Math.random();
     skyY[i] = Math.random();
-    depth[i] = Math.pow(Math.random(), 2.2);
+    baseDepth[i] = Math.pow(Math.random(), 2.2);
     stagger[i] = Math.random() * 0.55;
     twinkle[i] = Math.random() * Math.PI * 2;
   }
+  depth.set(baseDepth);
 
   const position = new Float32Array(N * 3);
   const size = new Float32Array(N);
@@ -126,25 +140,69 @@ function create(): Scene | null {
     aKey: { size: 1, data: key },
   });
 
-  // Constellation lines between near neighbours among the brighter stars.
-  const pairs: number[] = [];
-  const L = Math.min(N, 220);
-  for (let i = 0; i < L; i++) {
-    const near: Array<[number, number]> = [];
-    for (let j = 0; j < L; j++) {
-      if (i === j) continue;
-      near.push([Math.hypot(skyX[i] - skyX[j], (skyY[i] - skyY[j]) * 0.6), j]);
-    }
-    near.sort((a, b) => a[0] - b[0]);
-    for (const [d, j] of near.slice(0, 2)) if (d < 0.09 && i < j) pairs.push(i, j);
-  }
+  // Constellations: a few short chains of neighbouring stars, drawn as lines.
+  // A chain only joins stars that sit a sensible distance apart on screen, and
+  // every star of a chain shares one depth, so they drift and scroll together
+  // and the lines keep their shape. Each frame a line still checks its own
+  // length, and fades out when its stars have been pulled apart (while a shape
+  // forms or when one star wraps around the edge of the sky).
+  const L = Math.min(N, 200);
+  const links: number[] = [];
+  const restLength: number[] = [];
+  const linePos = new Float32Array(L * 2 * 3);
+  const lineAlpha = new Float32Array(L * 2);
   const lines = new Geometry(gl, {
-    position: { size: 3, data: position },
-    aSize: { size: 1, data: size },
-    aAlpha: { size: 1, data: alpha },
-    aKey: { size: 1, data: key },
-    index: { data: new Uint16Array(pairs) },
+    position: { size: 3, data: linePos },
+    aAlpha: { size: 1, data: lineAlpha },
   });
+
+  function buildConstellations(): void {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    depth.set(baseDepth);
+    links.length = 0;
+    restLength.length = 0;
+    const px = (i: number): number => skyX[i] * W;
+    const py = (i: number): number => skyY[i] * H;
+    const minGap = 46;
+    const maxGap = Math.min(190, Math.max(110, W * 0.13));
+    const wanted = Math.max(2, Math.round((W * H) / 95000));
+    const taken = new Set<number>();
+    let made = 0;
+    for (let start = 0; start < L && made < wanted; start++) {
+      if (taken.has(start)) continue;
+      const chain = [start];
+      const goal = 3 + Math.floor(Math.random() * 3);
+      while (chain.length < goal) {
+        const tail = chain[chain.length - 1];
+        let best = -1;
+        let bestD = Infinity;
+        for (let j = 0; j < L; j++) {
+          if (j === tail || taken.has(j) || chain.includes(j)) continue;
+          const d = Math.hypot(px(j) - px(tail), py(j) - py(tail));
+          if (d >= minGap && d <= maxGap && d < bestD) {
+            best = j;
+            bestD = d;
+          }
+        }
+        if (best < 0) break;
+        chain.push(best);
+      }
+      if (chain.length < 3) continue;
+      if (links.length / 2 + chain.length - 1 > L) break;
+      const z = 0.45 + Math.random() * 0.45;
+      chain.forEach((s, k) => {
+        taken.add(s);
+        depth[s] = z;
+        if (k > 0) {
+          links.push(chain[k - 1], s);
+          restLength.push(Math.hypot(px(s) - px(chain[k - 1]), py(s) - py(chain[k - 1])));
+        }
+      });
+      made++;
+    }
+  }
+  buildConstellations();
 
   const uniforms = {
     uResolution: { value: [window.innerWidth, window.innerHeight] },
@@ -153,9 +211,9 @@ function create(): Scene | null {
     uKeyColor: { value: [0.7, 0.6, 0.86] },
     uLineAlpha: { value: 0.2 },
   };
-  const common = { vertex: VERTEX, uniforms, transparent: true, depthTest: false, depthWrite: false };
-  const pointProgram = new Program(gl, { ...common, fragment: POINT_FRAGMENT });
-  const lineProgram = new Program(gl, { ...common, fragment: LINE_FRAGMENT });
+  const common = { uniforms, transparent: true, depthTest: false, depthWrite: false };
+  const pointProgram = new Program(gl, { ...common, vertex: VERTEX, fragment: POINT_FRAGMENT });
+  const lineProgram = new Program(gl, { ...common, vertex: LINE_VERTEX, fragment: LINE_FRAGMENT });
   const root = new Transform();
   new Mesh(gl, { geometry: lines, program: lineProgram, mode: gl.LINES }).setParent(root);
   new Mesh(gl, { geometry: points, program: pointProgram, mode: gl.POINTS }).setParent(root);
@@ -176,9 +234,16 @@ function create(): Scene | null {
   new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
 
+  // Phones fire `resize` as the address bar slides away, so the
+  // constellations are only redrawn when the width changes.
+  let builtFor = window.innerWidth;
   function resize(): void {
     renderer.setSize(window.innerWidth, window.innerHeight);
     uniforms.uResolution.value = [window.innerWidth, window.innerHeight];
+    if (window.innerWidth !== builtFor) {
+      builtFor = window.innerWidth;
+      buildConstellations();
+    }
   }
   resize();
   window.addEventListener('resize', resize);
@@ -196,6 +261,9 @@ function create(): Scene | null {
   // How far each star has been pushed aside by the pointer. Decays back.
   const pushX = new Float32Array(N);
   const pushY = new Float32Array(N);
+  // How far each star has joined the current shape, 0 to 1, so the
+  // constellation lines can leave with the stars they join.
+  const joined = new Float32Array(N);
 
   let shape: Shape | null = null;
   let anchor: Anchor | null = null;
@@ -289,6 +357,7 @@ function create(): Scene | null {
       position[i * 3] = x;
       position[i * 3 + 1] = y;
       position[i * 3 + 2] = z;
+      joined[i] = inShape;
 
       const tw = 0.7 + 0.3 * Math.sin(time * (0.8 + z) + twinkle[i]);
       const skyAlpha = (0.18 + z * 0.62) * tw;
@@ -311,12 +380,37 @@ function create(): Scene | null {
       key[i] = shape && i < shape.count ? shape.key[i] * inShape : 0;
     }
 
-    uniforms.uLineAlpha.value = (dark ? 0.16 : 0.12) * scene.presence * (1 - Math.min(1, scene.form * 1.5));
-    for (const g of [points, lines]) {
-      g.attributes.position.needsUpdate = true;
-      g.attributes.aAlpha.needsUpdate = true;
-      g.attributes.aSize.needsUpdate = true;
+    // A line is drawn only while its two stars still sit where the sky put
+    // them, about as far apart as they started. Stars pulled toward a shape,
+    // or one that wrapped around the edge of the sky, take the line with them.
+    const segments = links.length / 2;
+    const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const edge = (v: number, extent: number): number => clamp01(Math.min(v + 40, extent + 40 - v) / 160);
+    lineAlpha.fill(0);
+    for (let k = 0; k < segments; k++) {
+      const a = links[k * 2];
+      const b = links[k * 2 + 1];
+      const ax = position[a * 3];
+      const ay = position[a * 3 + 1];
+      const bx = position[b * 3];
+      const by = position[b * 3 + 1];
+      const rest = restLength[k];
+      const stretch = clamp01((rest * 1.6 - Math.hypot(ax - bx, ay - by)) / (rest * 0.45));
+      const fade = Math.min(edge(ax, W), edge(bx, W), edge(ay, H), edge(by, H));
+      const a01 = stretch * fade * (1 - Math.max(joined[a], joined[b]));
+      linePos[k * 6] = ax;
+      linePos[k * 6 + 1] = ay;
+      linePos[k * 6 + 3] = bx;
+      linePos[k * 6 + 4] = by;
+      lineAlpha[k * 2] = a01;
+      lineAlpha[k * 2 + 1] = a01;
     }
+    uniforms.uLineAlpha.value = (dark ? 0.2 : 0.16) * scene.presence;
+    lines.attributes.position.needsUpdate = true;
+    lines.attributes.aAlpha.needsUpdate = true;
+    points.attributes.position.needsUpdate = true;
+    points.attributes.aAlpha.needsUpdate = true;
+    points.attributes.aSize.needsUpdate = true;
     points.attributes.aKey.needsUpdate = true;
     renderer.render({ scene: root });
   }

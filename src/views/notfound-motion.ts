@@ -9,10 +9,19 @@ import { fromText } from '../motion/shapes';
 
 const code = document.querySelector<HTMLElement>('.code');
 
+const FONT = '600 240px Poppins, sans-serif';
+
 afterFonts(async () => {
   const scene = await getScene();
   if (!scene || !code) return;
-  scene.assemble(fromText('404', Math.min(scene.count, 900), '600 240px Poppins, sans-serif'), code, 1);
+  // The page itself may never ask for this weight, so load it before the
+  // canvas measures the digits, or they are drawn in a fallback face.
+  try {
+    await document.fonts.load(FONT, '404');
+  } catch {
+    // The fallback face still draws a readable 404.
+  }
+  scene.assemble(fromText('404', Math.min(scene.count, 900), FONT), code, 1);
   scene.repel = true;
   scene.burst = 0.6;
   code.classList.add('drawn');

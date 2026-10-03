@@ -248,6 +248,9 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
       display: flex;
       align-items: center;
     }
+    /* The star mark takes the right half (home-motion.ts), so the text
+       keeps to the left half instead of running over it. */
+    .opening-text { max-width: min(42rem, 52%); }
   }
 
   @media (max-width: 62rem) {
@@ -291,11 +294,18 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     column-gap: clamp(2rem, 5vw, 5rem);
     align-content: center;
     min-height: 100svh;
-    padding-block: 5rem 3rem;
+    padding-block: 4.5rem 2rem;
   }
   .what[data-mode='sequence'] .what-head {
     grid-template-columns: minmax(0, 1fr);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  /* The pinned screen can't scroll, so everything in it has to fit. On
+     windows under about 930px tall the lede steps aside and the title
+     shrinks, which leaves room for the open stage and the base layer. */
+  @media (max-height: 58rem) {
+    .what[data-mode='sequence'] .what-head p { display: none; }
+    .what[data-mode='sequence'] .what-head h2 { font-size: clamp(1.6rem, 2.6vw, 2.1rem); }
   }
   .what[data-mode='sequence'] .what-sky {
     display: block;
@@ -514,7 +524,10 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     font-size: clamp(1.1rem, 1.8vw, 1.35rem);
     font-weight: 500;
   }
-  .band p { display: flex; gap: 0.6rem; }
+  /* Only the phone and WhatsApp line is a row. The closing statement above
+     must stay a normal paragraph, because once its words are split into
+     spans a flex row would lay them out on a single line. */
+  .band-contact p { display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; }
   .band-more {
     margin-top: 0.75rem;
     font-size: 0.9rem;
