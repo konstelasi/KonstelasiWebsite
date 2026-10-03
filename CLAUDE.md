@@ -22,9 +22,25 @@ The site must not look generated. Read these before changing any page.
 - One brand hue, `--brand` (#311B92, a lighter step of it in dark mode). Violet means something: active state, the key line of a diagram, focus, the closing band on the home page. Never use it as decoration.
 - No photos and no assets from the old site except the logo. Graphics are SVG or CSS; icons come from Lucide through `astro-icon`.
 - Every colour is a token in `src/styles/tokens.css`, in both themes. `npm run verify:contrast` holds every text and surface pair to 4.5:1.
-- Motion is functional (diagrams that build, lines that connect, values that move into place). At most one thing moves on screen without being triggered, which is the StarDust slot animation on the home page. Everything else plays once and settles. `prefers-reduced-motion` must show the final state, and no information may exist only in an animation.
 - Layout must hold at phone width with no horizontal scroll. Verify UI by reasoning from the CSS; the maintainer checks visually by hand.
 - Reference bar for creativity: konghq.com (nothing on its landing page repeats a section pattern). Also useful: oxide.computer for diagram-led technical pages, planetscale.com for restrained monochrome typography.
+
+## Motion rules
+
+The site is meant to be bold and alive, a "living constellation": a WebGL star field behind every page that assembles into shapes (the logo, the services system, the 404) and breaks apart into the sky again.
+
+- **Motion explains.** Data moves along the line it would really travel, shapes assemble into what they represent, problems strike through as the solution arrives.
+- **One lead per view.** Several things may move at once, but each viewport has one lead motion and everything else supports it. Don't add a second lead to a section that has one.
+- **Fallbacks are mandatory.** Every animation has a reduced-motion final state and a no-JS fallback, and no information exists only in motion. The SVG and CSS versions (hero constellation, clickable system diagram, CSS diagram reveal, slot loop) are the fallbacks, so keep them working.
+- **Budget.** Home pages at most 160 KB of gzipped JS, other pages at most 110 KB. `npm run verify:budget` enforces it on `dist/`.
+
+How it's built:
+
+- `src/motion/core.ts` registers GSAP (ScrollTrigger, SplitText) and Lenis once. Every motion module imports from it and checks `motionOn` (no reduced motion). `src/motion/index.ts` runs on every page: smooth scroll, magnetic links, kinetic headings, and the star field.
+- The inline script in Base.astro adds `motion` to `<html>` before paint, and removes it again if `ready()` hasn't added `motion-ready` within 3 s. CSS keyed on `.motion` may hide things that are about to animate in; CSS keyed on `.motion-ready` may switch off a CSS fallback that JS now drives.
+- Headings get `data-split="lines" | "words" | "chars"` (`src/motion/type.ts`). Vary the variant between neighbouring sections.
+- `src/motion/scene.ts` is the star field (OGL). Pages ask it to `assemble(shape, anchor)` and set `form` 0 to 1. Shapes come from `src/motion/shapes.ts` (SVG paths, text, or segments drawn in code). Swap a shape only while `form` is near 0, or the stars jump. `src/components/home/home-motion.ts` is the pattern for a director that decides which shape the sky holds.
+- Page and component motion lives next to its markup, as a `*-motion.ts` file imported from the `.astro` file's `<script>`.
 
 ## Writing style
 
@@ -53,7 +69,12 @@ Every human-read text here (page copy, content files, code comments, README) fol
 - The logo is one SVG, `src/assets/konstelasi-logo.svg`, traced from the old site's PNG and drawn in `currentColor`, so it follows the theme with no filter. The OG endpoint recolours it, and `scripts/gen-icons.mjs` derives `public/favicon.svg` (with its own dark scheme) and the PNG fallbacks from it. Don't add a second logo file; rerun the generator after changing it.
 - Lightning CSS folds `animation-timeline` into the `animation` shorthand when both sit in one rule, and browsers then drop the declaration. Keep the timeline in its own rule (see `Constellation.astro`) and check the built CSS.
 - Diagrams are SVG in fixed user units. Check that every label fits its box by counting characters (about 7.8 units per char for 13px mono, 8.5 for 15px Poppins), and check the Indonesian label too, since it's usually longer. On phones the diagram frame scrolls sideways instead of shrinking the text.
-- The home page constellation draws with a scroll-driven animation where supported, and once on entering view elsewhere. The StarDust slot animation is the one autonomous loop; don't add a second.
+- The SVG hero constellation (the fallback when there's no WebGL) draws with a scroll-driven animation where supported, and once on entering view elsewhere.
+- HTML comments in an `.astro` template and in SVG files imported as components ship to the browser. Put notes in frontmatter comments instead.
+- Lenis runs with `anchors: false` so the skip link keeps moving focus. SplitText uses `tag: 'span'` so a split link stays valid HTML.
+- `view-transition-name` must be unique on a page, or the browser skips the transition. `h1` gets `page-title`, product names carry `product-<slug>` inline, and only one element per page may carry each.
+- Pinned sections (home services, About values, product diagrams) are created after layout settles. Call `ScrollTrigger.refresh()` after creating a pin, so every trigger below it accounts for the spacer.
+- `motion-ready` is only set with motion on. Don't key a reduced-motion final state on it.
 - Expected build warnings: the empty `portfolio` collection and the missing `src/icons/` folder. Anything else is new.
 - The blog posts are content without a route, deliberately. The old blog URLs are not redirected yet either; see README.md "Old URLs".
 - `git config core.autocrlf` is on for this machine, so `.gitattributes` forces LF. `deploy.sh` breaks on the host with CRLF.

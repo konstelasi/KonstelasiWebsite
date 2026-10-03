@@ -20,9 +20,10 @@ npm run check             # Astro and TypeScript diagnostics
 npm run verify:contrast   # every text colour against every surface, both themes
 npm run verify:copy       # dashes, and colons in headings and titles
 npm run verify:links      # internal links, preview images and hreflang pairs
+npm run verify:budget     # gzipped JavaScript per page against its budget
 ```
 
-`verify:links` reads the built site, so run `npm run build` first. The build prints two warnings that are expected: the portfolio collection has no entries yet, and there is no `src/icons/` folder because every icon comes from Lucide.
+`verify:links` and `verify:budget` read the built site, so run `npm run build` first. The build prints two warnings that are expected: the portfolio collection has no entries yet, and there is no `src/icons/` folder because every icon comes from Lucide.
 
 ## How it's put together
 
@@ -33,6 +34,14 @@ Products, services and the Konstelasi Chat privacy policy are Markdown files in 
 Colours are tokens in `src/styles/tokens.css`, defined for the light and the dark theme. The site follows the visitor's system setting until they use the toggle, and the choice is remembered in the browser.
 
 Link preview images are drawn at build time by `src/pages/og/[lang]/[name].png.ts`. The list of pages they're drawn for is `src/lib/og-pages.ts`, so a new page needs an entry there. The favicons are made from the logo by `node scripts/gen-icons.mjs`, which only needs rerunning if the logo changes.
+
+## Motion
+
+The site is built around one idea, a living constellation. A WebGL star field sits behind every page, drifting with the scroll and leaning toward the pointer. On the home page it assembles into the Konstelasi mark, breaks apart as you scroll, and regroups into the services system while that section is pinned. The 404 page draws its number in stars that scatter from the pointer.
+
+Around it, GSAP drives the rest. Headings enter by line, word or letter, the products orbit the mark, a comet runs down the essay, diagrams build with the scroll, packets of data cross the service diagrams, and the values on About slide past as a pinned strip. Lenis smooths the scrolling on mouse and trackpad.
+
+Visitors who ask their system for reduced motion get a still site with every drawing in its finished state, and the same happens without JavaScript. Without WebGL, the SVG versions of the home drawings take over. The code is in `src/motion/` for the shared parts, and in a `*-motion.ts` file next to each page or component for the rest.
 
 ## Kept but not published
 

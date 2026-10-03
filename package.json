@@ -15,6 +15,7 @@
     "verify:contrast": "node --experimental-strip-types --no-warnings scripts/verify-contrast.ts",
     "verify:copy": "node --experimental-strip-types --no-warnings scripts/verify-copy.ts",
     "verify:links": "node --experimental-strip-types --no-warnings scripts/verify-links.ts",
+    "verify:budget": "node --experimental-strip-types --no-warnings scripts/verify-budget.ts",
     "deploy": "bash deploy.sh",
     "astro": "astro"
   },
