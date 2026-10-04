@@ -63,6 +63,10 @@ const copy = {
     closingLink: 'Wujudkan ide Anda bersama kami',
   },
 }[lang];
+
+// The team section is written and styled, but held back for now. Set this to
+// true to show it again, and the star map in about-motion.ts picks it up.
+const showTeam = false;
 ---
 
 <Base lang={lang} title={meta.title} description={meta.description}>
@@ -109,6 +113,7 @@ const copy = {
     </dl>
   </section>
 
+  {showTeam && (
   <section class="team reveal" aria-labelledby="team-title">
     <h2 id="team-title">{copy.teamTitle}</h2>
     <svg class="team-sky" viewBox="0 0 520 130" aria-hidden="true" data-team-sky>
@@ -130,6 +135,7 @@ const copy = {
       ))}
     </ul>
   </section>
+  )}
 
   <section class="end reveal">
     <p data-split="words">{copy.closing}</p>
