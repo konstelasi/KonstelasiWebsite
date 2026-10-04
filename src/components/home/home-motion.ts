@@ -33,8 +33,11 @@ async function start(): Promise<void> {
   const markAnchor = (): DOMRect => {
     const r = opening.getBoundingClientRect();
     if (!wide.matches) {
-      const sky = opening.querySelector('.opening-sky')?.getBoundingClientRect();
-      return sky ?? r;
+      // The SVG fallback bleeds off the right edge, so centre the mark on the
+      // screen instead of on that box.
+      const sky = opening.querySelector('.opening-sky')?.getBoundingClientRect() ?? r;
+      const side = 16;
+      return new DOMRect(side, sky.top, window.innerWidth - side * 2, sky.height);
     }
     // The right part of the opening, kept inside the viewport.
     const left = r.left + r.width * 0.52;
@@ -51,12 +54,31 @@ async function start(): Promise<void> {
   let system: Shape[] = [];
   let seq: ScrollTrigger | null = null;
   const stages = [...what.querySelectorAll<HTMLDetailsElement>('details')];
+  const list = what.querySelector<HTMLElement>('.system');
+
+  // Opening a stage changes the height of the text column. Left alone, the
+  // column would re-centre against the graphic at every step and jump. So it
+  // is held at the tallest state, measured by opening each stage in turn.
+  function holdHeight(): void {
+    if (!list) return;
+    const open = stages.find((d) => d.open);
+    list.style.minHeight = '';
+    let tallest = 0;
+    for (const d of stages) {
+      d.open = true;
+      tallest = Math.max(tallest, list.offsetHeight);
+    }
+    list.style.minHeight = `${tallest}px`;
+    for (const d of stages) d.open = d === open;
+  }
   const mm = gsap.matchMedia();
   // Wide and tall enough that the stage list fits inside the pinned screen.
   // A short window keeps the plain, clickable system diagram instead.
   mm.add('(min-width: 62rem) and (min-height: 44rem)', () => {
     what.dataset.mode = 'sequence';
     system = system.length ? system : systemShapes(Math.min(scene.count, 950));
+    holdHeight();
+    ScrollTrigger.addEventListener('refreshInit', holdHeight);
     let step = -1;
     seq = ScrollTrigger.create({
       trigger: what,
@@ -80,6 +102,8 @@ async function start(): Promise<void> {
     });
     ScrollTrigger.refresh();
     return () => {
+      ScrollTrigger.removeEventListener('refreshInit', holdHeight);
+      if (list) list.style.minHeight = '';
       delete what.dataset.mode;
       seq?.kill();
       seq = null;
