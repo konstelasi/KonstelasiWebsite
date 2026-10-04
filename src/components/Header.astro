@@ -253,7 +253,18 @@ function isActive(path: string): boolean {
       gap: 0.4rem 1.2rem;
     }
 
+    /* With JS the links live in the menu, so the bar is one row that never
+       wraps. If it runs short, the name gives way before the button does. */
+    :global(.js) .site-header { flex-wrap: nowrap; }
+    .brand { min-width: 0; }
+    .brand span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     :global(.js) .menu-toggle {
+      flex: none;
+      white-space: nowrap;
       display: inline-flex;
       order: 2;
       border-color: var(--border-bright);
@@ -288,5 +299,18 @@ function isActive(path: string): boolean {
     }
     :global(.js) .nav a[aria-current='page'] { color: var(--brand); }
     :global(.js) .nav a[aria-current='page']::after { display: none; }
+  }
+
+  /* Under about 340px the button is the icon alone. Its label stays for
+     screen readers. */
+  @media (max-width: 21.5rem) {
+    :global(.js) .menu-toggle { padding: 0; min-width: 2.25rem; }
+    :global(.js) .menu-toggle span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
   }
 </style>
