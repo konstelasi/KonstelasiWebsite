@@ -41,7 +41,6 @@ const links = [
       {contact.socials.map((s) => <a href={s.href} rel="me noopener">{s.name}</a>)}
     </p>
     <p class="legal">
-      <a href={localePath(lang, '/privacy-policy-konstelasi-chat/')}>{t.footer.policy}</a>
       <span>&copy; {year} {t.site.legalName}</span>
     </p>
   </div>
@@ -121,7 +120,6 @@ const links = [
     margin-left: auto;
     color: var(--text-faint);
   }
-  .legal a { color: var(--text-faint); }
 
   @media (max-width: 40rem) {
     address { justify-items: start; }
