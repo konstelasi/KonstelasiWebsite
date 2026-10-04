@@ -38,7 +38,8 @@ if (essay && motionOn) {
   const shift = (el: Element): number => parseFloat(getComputedStyle(el).translate.split(' ')[1] ?? '') || 0;
 
   const stops = beats.map(() => el('circle', { class: 'comet-stop', r: '3.5' }));
-  rail.after(...stops);
+  const links = beats.map(() => el('path', { class: 'comet-link' }));
+  rail.after(...links, ...stops);
 
   // One straight line down the gap between the paragraphs and their notes,
   // with a stop at the top of each beat. On a phone, where the notes sit
@@ -50,7 +51,14 @@ if (essay && motionOn) {
     const gutter = Math.min(14, box.left / 2);
     const first = notes.find(Boolean)?.getBoundingClientRect();
     const x = side && first ? first.left - box.left - 28 : -gutter;
-    const tops = beats.map((beat) => beat.getBoundingClientRect().top - shift(beat) - box.top + 14);
+    // Each stop sits level with the middle of its note, and a short line
+    // joins it to the note's bubble. With the notes under their paragraphs
+    // the stop sits level with the paragraph's first line instead.
+    const tops = beats.map((beat, i) => {
+      const n = notes[i]?.getBoundingClientRect();
+      const top = beat.getBoundingClientRect().top - shift(beat) - box.top;
+      return side && n ? top + (n.top - beat.getBoundingClientRect().top) + n.height / 2 : top + 14;
+    });
     const bottom = beats[beats.length - 1].getBoundingClientRect().bottom - shift(beats[beats.length - 1]) - box.top - 6;
     const d = `M ${x} ${tops[0]} L ${x} ${bottom}`;
     rail.setAttribute('d', d);
@@ -58,6 +66,8 @@ if (essay && motionOn) {
     stops.forEach((c, i) => {
       c.setAttribute('cx', String(x));
       c.setAttribute('cy', String(tops[i]));
+      const n = notes[i]?.getBoundingClientRect();
+      links[i].setAttribute('d', side && n ? `M ${x} ${tops[i]} H ${n.left - box.left - 6}` : '');
     });
     length = trail.getTotalLength();
     trail.style.strokeDasharray = `${length}`;

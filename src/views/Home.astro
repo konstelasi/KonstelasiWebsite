@@ -488,6 +488,11 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     stroke: var(--border-bright);
     stroke-width: 1;
   }
+  .essay :global(.comet-link) {
+    fill: none;
+    stroke: var(--border-bright);
+    stroke-width: 1;
+  }
   .essay :global(.comet-stop) {
     fill: var(--bg);
     stroke: var(--border-hover);
@@ -518,22 +523,56 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
     line-height: 1.5;
     letter-spacing: -0.012em;
   }
+  /* The margin note as a speech bubble, its tail pointing back at the rail.
+     The text sits in the middle of the bubble, and the rail's stop is level
+     with that middle (comet.ts). */
   .beat aside {
-    padding-top: 0.55rem;
-    padding-left: 1rem;
-    border-left: 1px solid var(--border-bright);
+    position: relative;
+    align-self: start;
+    display: flex;
+    align-items: center;
+    min-height: 3.1rem;
+    padding: 0.7rem 1.05rem;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
     font-size: 0.875rem;
-    line-height: 1.55;
+    line-height: 1.5;
     color: var(--text-faint);
     transition: color 0.5s var(--ease), border-color 0.5s var(--ease);
   }
+  .beat aside::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: var(--bg-raised);
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    border-color: inherit;
+    border-top-color: transparent;
+    border-right-color: transparent;
+    translate: 0 -50%;
+    rotate: 45deg;
+  }
   .beat aside:global(.lit) {
     color: var(--text-dim);
-    border-left-color: var(--brand);
+    border-color: var(--brand);
   }
   @media (max-width: 52rem) {
     .beat { grid-template-columns: minmax(0, 1fr); }
-    .beat aside { padding-top: 0; }
+    /* Under the paragraph, the tail points up at it. */
+    .beat aside { margin-top: 0.4rem; justify-self: start; }
+    .beat aside::before {
+      left: 1.2rem;
+      top: -6px;
+      translate: 0 0;
+      border-left-color: inherit;
+      border-top-color: inherit;
+      border-bottom-color: transparent;
+    }
   }
 
   /* Closing. The one full-bleed violet band on the page. */
