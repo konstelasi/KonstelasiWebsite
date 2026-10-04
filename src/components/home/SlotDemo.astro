@@ -56,13 +56,17 @@ const rowY = [96, 130, 164];
     <text x="652" y={rowY[2] + 30} text-anchor="end">{indexed}</text>
   </g>
 
-  <g class="chip chip-a">
-    <rect x="188" y="111" width="116" height="27" rx="5" />
-    <text x="196" y="130">"software"</text>
+  <g class="mover mover-a">
+    <g class="chip chip-a">
+      <rect x="188" y="111" width="116" height="27" rx="5" />
+      <text x="196" y="130">"software"</text>
+    </g>
   </g>
-  <g class="chip chip-b">
-    <rect x="188" y="141" width="44" height="27" rx="5" />
-    <text x="196" y="160">120</text>
+  <g class="mover mover-b">
+    <g class="chip chip-b">
+      <rect x="188" y="141" width="44" height="27" rx="5" />
+      <text x="196" y="160">120</text>
+    </g>
   </g>
 </svg>
 
@@ -74,8 +78,11 @@ const rowY = [96, 130, 164];
 
   if (motionOn) {
     document.querySelectorAll<SVGSVGElement>('svg.demo').forEach((svg) => {
-      const a = svg.querySelector('.chip-a');
-      const b = svg.querySelector('.chip-b');
+      // The wrappers carry the scroll-driven move. The chips inside keep the
+      // CSS translate of the no-JS loop, and GSAP must never share an element
+      // with it: it writes an inline CSS transform that hides its own move.
+      const a = svg.querySelector('.mover-a');
+      const b = svg.querySelector('.mover-b');
       const mark = svg.querySelector('.mark');
       if (!a || !b || !mark) return;
       gsap
@@ -164,7 +171,7 @@ const rowY = [96, 130, 164];
      the loop (see the script above). */
   :global(.motion-ready) .demo .chip,
   :global(.motion-ready) .demo .mark { animation: none !important; }
-  :global(.motion-ready) .demo .chip { translate: none; }
+  :global(.motion-ready) .demo .chip { translate: none; opacity: 1; }
 
   @keyframes travel {
     0%   { opacity: 0; translate: 0 0; }
