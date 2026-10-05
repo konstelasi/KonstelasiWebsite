@@ -10,8 +10,8 @@
  * - `weight`: brightness, 0 to 1.
  *
  * A shape also has an `outline`: polylines in the same unit box that trace
- * what the stars are meant to be. The scene fades them in as the stars gather
- * and out as they scatter, so the shape reads even before every star is home.
+ * what the stars are meant to be. The scene lights them once the stars have
+ * nearly gathered and puts them out early as they scatter.
  *
  * Shapes come from SVG markup (the logo), from text (the 404), or from
  * lines drawn in code (the services system).

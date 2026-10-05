@@ -499,12 +499,13 @@ function create(): Scene | null {
       lineAlpha[k * 2] = a01;
       lineAlpha[k * 2 + 1] = a01;
     }
-    // The outline arrives as the stars gather and leaves as they scatter. Its
-    // haze comes in later than the tube and goes first, so the stars lead and
-    // the glow only crowns a shape that has nearly formed. Light mode keeps
-    // the plain tube, because a haze on a light page reads as a smudge.
-    const gather = clamp01((scene.form - 0.2) / 0.7);
-    const outlineAlpha = gather * gather * (dark ? 0.75 : 0.55) * scene.presence;
+    // The outline lights up only once the stars have nearly gathered, over a
+    // short stretch of `form`, and goes out early as they scatter. Its haze
+    // comes in later than the tube and goes first, so the stars lead and the
+    // glow only crowns a formed shape. Light mode keeps the plain tube,
+    // because a haze on a light page reads as a smudge.
+    const neon = clamp01((scene.form - 0.78) / 0.175);
+    const outlineAlpha = neon * neon * (dark ? 0.75 : 0.55) * scene.presence;
     outlineMesh.visible = outlineAlpha > 0.003 && outlineCount > 0 && rw > 0;
     if (outlineMesh.visible) {
       for (let n = 0; n < outlineCount * 4; n += 2) {
@@ -515,7 +516,7 @@ function create(): Scene | null {
       outlineGeometry.attributes.aSeg.needsUpdate = true;
     }
     uniforms.uOutlineAlpha.value = outlineAlpha;
-    uniforms.uGlow.value = dark ? gather * gather * gather : 0;
+    uniforms.uGlow.value = dark ? neon * neon * neon : 0;
     uniforms.uLineAlpha.value = (dark ? 0.3 : 0.26) * scene.presence;
     lines.attributes.position.needsUpdate = true;
     lines.attributes.aAlpha.needsUpdate = true;
