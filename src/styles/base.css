@@ -44,6 +44,12 @@ h1 { view-transition-name: page-title; }
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Any overflow value here keeps the one on <body> on <body>. While <html>
+     is `visible`, the browser moves body's `overflow-x` up to the viewport
+     instead, where `clip` turns into `hidden` and <body> clips nothing.
+     Phone browsers still let a finger pan a viewport that is only `hidden`,
+     so the opening constellation could be dragged into view. */
+  overflow-x: clip;
 }
 
 body {

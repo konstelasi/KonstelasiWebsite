@@ -65,7 +65,7 @@ Every human-read text here (page copy, content files, code comments, README) fol
 
 ## Traps
 
-- `body` uses `overflow-x: clip`, not `hidden`. `hidden` makes it a scroll container and breaks `position: sticky`.
+- `body` uses `overflow-x: clip`, not `hidden`. `hidden` makes it a scroll container and breaks `position: sticky`. `html` carries `overflow-x: clip` too, and must keep some non-`visible` value: otherwise body's overflow propagates to the viewport, body clips nothing, and phones can pan sideways to the bleeding hero constellation.
 - A closed `<details>` can't be forced open with CSS in every browser, which is why the phone menu is a JS toggle with a no-JS fallback.
 - `src/lib/og-pages.ts` must list every published page. A page without an entry gets a broken `og:image`, which `npm run verify:links` reports.
 - The logo is one SVG, `src/assets/konstelasi-logo.svg`, traced from the old site's PNG and drawn in `currentColor`, so it follows the theme with no filter. The OG endpoint recolours it, and `scripts/gen-icons.mjs` derives `public/favicon.svg` (with its own dark scheme) and the PNG fallbacks from it. Don't add a second logo file; rerun the generator after changing it.
