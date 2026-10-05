@@ -1,9 +1,13 @@
 ---
 /**
- * The constellation on the right edge of the home page opening. Its four
- * named stars are the four services, and the lines between them draw as the
- * page scrolls. Purely decorative: the services are listed properly in the
- * next section, so the whole drawing is hidden from assistive tech.
+ * The constellation on the right edge of the home page opening, drawn as the
+ * real Crux (the Southern Cross, which is high in the sky from Indonesia).
+ * Its four main stars are the four services, brightest first in the order of
+ * the services collection, and the two bars of the cross draw as the page
+ * scrolls. This is the fallback for visitors without the WebGL star field,
+ * and what everyone sees until it starts. Purely decorative: the services are
+ * listed properly in the next section, so the whole drawing is hidden from
+ * assistive tech.
  */
 interface Props {
   labels: [string, string, string, string];
@@ -11,39 +15,129 @@ interface Props {
 
 const { labels } = Astro.props;
 
-// The four services, in the order of the services collection.
-const named = [
-  { x: 200, y: 165, label: labels[0], anchor: 'end', dx: -16, dy: 5 },
-  { x: 395, y: 105, label: labels[1], anchor: 'start', dx: 16, dy: 5 },
-  { x: 470, y: 350, label: labels[2], anchor: 'start', dx: 16, dy: 5 },
-  { x: 250, y: 445, label: labels[3], anchor: 'end', dx: -16, dy: 5 },
-] as const;
+const deg = Math.PI / 180;
+const hms = (h: number, m: number, s: number): number => (h + m / 60 + s / 3600) * 15;
+const dms = (d: number, m: number, s: number): number => -(Math.abs(d) + m / 60 + s / 3600);
 
-const minor = [
-  [300, 270], [560, 210], [120, 330], [355, 525], [530, 520], [255, 45], [610, 400], [150, 525],
-] as const;
+// A gnomonic projection centred on the cross, in viewBox units. North is up
+// and east is to the left, as the sky looks when you face it, so the cross
+// stands upright the way it does when it's highest.
+const RA0 = 187.5;
+const DEC0 = -60;
+const SCALE = 70;
+const CX = 260;
+const CY = 283;
+function project(ra: number, dec: number): [number, number] {
+  const a = (ra - RA0) * deg;
+  const d = dec * deg;
+  const d0 = DEC0 * deg;
+  const c = Math.sin(d0) * Math.sin(d) + Math.cos(d0) * Math.cos(d) * Math.cos(a);
+  const xi = (Math.cos(d) * Math.sin(a)) / c;
+  const eta = (Math.cos(d0) * Math.sin(d) - Math.sin(d0) * Math.cos(d) * Math.cos(a)) / c;
+  return [CX - (xi / deg) * SCALE, CY - (eta / deg) * SCALE];
+}
 
-// The violet path joins the four services. The grey lines tie in the minor
-// stars. `i` staggers when each line draws.
-const key = 'M200 165 L395 105 L470 350 L250 445 Z';
-const lines = [
-  [200, 165, 300, 270], [300, 270, 470, 350], [395, 105, 560, 210], [560, 210, 610, 400],
-  [250, 445, 150, 525], [200, 165, 120, 330], [470, 350, 530, 520], [250, 445, 355, 525],
-  [395, 105, 255, 45],
-] as const;
+// J2000 positions and visual magnitudes. A star's size follows its
+// magnitude on a softened scale, so the faintest is still easy to see.
+type Place = 'left' | 'right' | 'above' | 'below';
+const crux: Array<{ ra: number; dec: number; mag: number; label?: string; place?: Place }> = [
+  { ra: hms(12, 26, 35.9), dec: dms(63, 5, 57), mag: 0.76, label: labels[0], place: 'left' }, // Acrux
+  { ra: hms(12, 47, 43.3), dec: dms(59, 41, 19), mag: 1.25, label: labels[1], place: 'below' }, // Mimosa
+  { ra: hms(12, 31, 10.0), dec: dms(57, 6, 48), mag: 1.64, label: labels[2], place: 'right' }, // Gacrux
+  { ra: hms(12, 15, 8.7), dec: dms(58, 44, 56), mag: 2.79, label: labels[3], place: 'above' }, // Imai
+  { ra: hms(12, 21, 21.6), dec: dms(60, 24, 4), mag: 3.59 }, // Ginan
+];
+
+const stars = crux.map((s) => {
+  const [x, y] = project(s.ra, s.dec).map((n) => Math.round(n * 10) / 10);
+  const r = 4.6 * Math.pow(10, -0.12 * (s.mag - 0.76));
+  const ring = r + 6.5;
+  let text: { x: number; y: number; anchor: string } | null = null;
+  if (s.label && s.place) {
+    text = {
+      left: { x: x - ring - 7, y: y + 5, anchor: 'end' },
+      right: { x: x + ring + 7, y: y + 5, anchor: 'start' },
+      above: { x, y: y - ring - 9, anchor: 'middle' },
+      below: { x, y: y + ring + 19, anchor: 'middle' },
+    }[s.place];
+  }
+  return { x, y, r, ring, label: s.label, text };
+});
+
+// The traditional figure is just the cross: Gacrux to Acrux, Mimosa to Imai.
+// Each bar stops short of its stars, as on a printed chart.
+function bar(a: (typeof stars)[number], b: (typeof stars)[number]): [number, number, number, number] {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  const ux = (b.x - a.x) / len;
+  const uy = (b.y - a.y) / len;
+  const ta = a.ring + 5;
+  const tb = b.ring + 5;
+  return [a.x + ux * ta, a.y + uy * ta, b.x - ux * tb, b.y - uy * tb].map((n) => Math.round(n * 10) / 10) as [number, number, number, number];
+}
+const bars = [bar(stars[2], stars[0]), bar(stars[1], stars[3])];
+
+// The faint field behind the cross. It is generated, not catalogued, but it
+// follows the real sky here: Crux sits in the Milky Way, whose plane runs
+// just below Acrux, and the Coalsack, a dark nebula, empties the field to
+// the lower left. A fixed seed keeps every build identical.
+let seed = 7;
+function random(): number {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const [p1x, p1y] = project(175.869, -61.821); // galactic plane at l = 295
+const [p2x, p2y] = project(197.387, -62.799); // and at l = 305
+const [sackX, sackY] = project(hms(12, 50, 0), dms(62, 30, 0));
+
+// Room kept clear around the named stars and their labels, at about 8.5
+// units per character of 15px Poppins.
+const clear = stars.flatMap((s) => {
+  const around = { x0: s.x - s.ring - 8, x1: s.x + s.ring + 8, y0: s.y - s.ring - 8, y1: s.y + s.ring + 8 };
+  if (!s.text || !s.label) return [around];
+  const w = s.label.length * 8.5;
+  const x0 = s.text.anchor === 'end' ? s.text.x - w : s.text.anchor === 'middle' ? s.text.x - w / 2 : s.text.x;
+  return [around, { x0: x0 - 6, x1: x0 + w + 6, y0: s.text.y - 17, y1: s.text.y + 7 }];
+});
+
+const field: Array<{ x: string; y: string; r: string; o: string }> = [];
+for (let tries = 0; field.length < 150 && tries < 4000; tries++) {
+  const x = random() * 640;
+  const y = random() * 580;
+  const fromPlane = Math.abs((p2x - p1x) * (p1y - y) - (p1x - x) * (p2y - p1y)) / Math.hypot(p2x - p1x, p2y - p1y);
+  const band = 0.3 + 0.7 * Math.exp(-((fromPlane / 300) ** 2));
+  const sack = 1 - 0.85 * Math.exp(-(((x - sackX) / 180) ** 2 + ((y - sackY) / 130) ** 2));
+  if (random() > band * sack) continue;
+  if (clear.some((c) => x > c.x0 && x < c.x1 && y > c.y0 && y < c.y1)) continue;
+  field.push({
+    x: x.toFixed(1),
+    y: y.toFixed(1),
+    r: (0.45 + 1.15 * random() ** 3).toFixed(2),
+    o: (0.35 + 0.55 * random()).toFixed(2),
+  });
+}
 ---
 
 <svg class="sky" viewBox="0 0 640 580" aria-hidden="true" data-draw>
-  <path class="key" d={key} pathLength="1" style="--i: 0" />
-  {lines.map(([x1, y1, x2, y2], i) => (
-    <line x1={x1} y1={y1} x2={x2} y2={y2} pathLength="1" style={`--i: ${i + 1}`} />
+  <defs>
+    <radialGradient id="crux-glow">
+      <stop class="glow-in" offset="0" />
+      <stop class="glow-out" offset="1" />
+    </radialGradient>
+  </defs>
+  <g class="field">
+    {field.map((f) => <circle cx={f.x} cy={f.y} r={f.r} opacity={f.o} />)}
+  </g>
+  {bars.map(([x1, y1, x2, y2], i) => (
+    <line class="key" x1={x1} y1={y1} x2={x2} y2={y2} pathLength="1" style={`--i: ${i}`} />
   ))}
-  {minor.map(([cx, cy]) => <circle class="minor" cx={cx} cy={cy} r="2.5" />)}
-  {named.map((s) => (
+  {stars.map((s) => (
     <g class="star">
-      <circle class="halo" cx={s.x} cy={s.y} r="11" />
-      <circle class="core" cx={s.x} cy={s.y} r="4.5" />
-      <text x={s.x + s.dx} y={s.y + s.dy} text-anchor={s.anchor}>{s.label}</text>
+      <circle class="glow" cx={s.x} cy={s.y} r={s.r * 3.4} fill="url(#crux-glow)" />
+      {s.label && <circle class="halo" cx={s.x} cy={s.y} r={s.ring} />}
+      <circle class:list={['core', { faint: !s.label }]} cx={s.x} cy={s.y} r={s.r} />
+      {s.text && <text x={s.text.x} y={s.text.y} text-anchor={s.text.anchor}>{s.label}</text>}
     </g>
   ))}
 </svg>
@@ -53,18 +147,20 @@ const lines = [
     overflow: visible;
   }
 
-  line,
   .key {
     fill: none;
-    stroke-width: 1.25;
+    stroke: var(--brand);
+    stroke-width: 1.75;
+    stroke-linecap: round;
     stroke-dasharray: 1;
     stroke-dashoffset: 0;
   }
-  line { stroke: var(--border-hover); }
-  .key { stroke: var(--brand); stroke-width: 1.75; }
 
-  .minor { fill: var(--text-faint); }
+  .field { fill: var(--text-faint); opacity: 0.7; }
+  .glow-in { stop-color: var(--border-hover); stop-opacity: 0.8; }
+  .glow-out { stop-color: var(--border-hover); stop-opacity: 0; }
   .core { fill: var(--text); }
+  .core.faint { fill: var(--text-dim); }
   .halo { fill: none; stroke: var(--border-bright); }
   text {
     fill: var(--text-dim);
@@ -72,21 +168,19 @@ const lines = [
     letter-spacing: -0.01em;
   }
 
-  /* Lines draw with the scroll where the browser supports scroll-driven
-     animation. Each starts a little later than the one before.
+  /* The bars draw with the scroll where the browser supports scroll-driven
+     animation, the second a little later than the first.
 
      The timeline sits in its own, more specific rule on purpose. In one rule
      with the `animation` shorthand, the minifier folds `scroll(root)` into
      the shorthand, where browsers reject it and drop the whole declaration. */
   @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: scroll()) {
-      line,
       .key {
         animation-name: draw;
         animation-timing-function: linear;
         animation-fill-mode: both;
       }
-      .sky line,
       .sky .key {
         animation-duration: auto;
         animation-timeline: scroll(root);
@@ -96,11 +190,9 @@ const lines = [
 
     /* Elsewhere they draw once, when the drawing comes into view. */
     @supports not (animation-timeline: scroll()) {
-      :global(.js) .sky line,
       :global(.js) .sky .key {
         stroke-dashoffset: 1;
       }
-      :global(.js) .sky.is-in line,
       :global(.js) .sky.is-in .key {
         animation: draw 0.9s var(--ease-out) both;
         animation-delay: calc(var(--i) * 90ms);
