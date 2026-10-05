@@ -72,27 +72,56 @@ void main() {
   gl_FragColor = vec4(uColor * a, a);
 }`;
 
-// Outlines are plain lines from a fixed list of unit-box points, placed on the
-// screen from the shape's fitted rectangle each frame.
+// Outlines come from a fixed list of unit-box segments, placed on the screen
+// from the shape's fitted rectangle each frame. A browser draws GL lines one
+// pixel wide whatever you ask for, so each segment is a quad instead, `uHalf`
+// pixels either side of the line and past each end. `position` is the quad's
+// corner: x 0 at the start and 1 at the end, y -1 and 1 across.
 const OUTLINE_VERTEX = /* glsl */ `
-attribute vec3 position;
+attribute vec2 position;
+attribute vec4 aSeg;
 attribute float aKey;
 uniform vec2 uResolution;
+uniform float uHalf;
+varying vec2 vLocal;
+varying float vLen;
 varying float vKey;
 void main() {
-  vec2 clip = position.xy / uResolution * 2.0 - 1.0;
+  vec2 d = aSeg.zw - aSeg.xy;
+  float len = length(d);
+  vec2 t = len > 0.0001 ? d / len : vec2(1.0, 0.0);
+  vec2 n = vec2(-t.y, t.x);
+  float along = position.x * len + (position.x * 2.0 - 1.0) * uHalf;
+  float across = position.y * uHalf;
+  vec2 p = aSeg.xy + t * along + n * across;
+  vec2 clip = p / uResolution * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  vLocal = vec2(along, across);
+  vLen = len;
   vKey = aKey;
 }`;
 
+// The distance from the segment, round at both ends, gives a neon profile: a
+// thin bright tube, and on dark a soft haze around it (`uGlow`). Segments
+// meet end to end, so their round ends overlap at every joint. The outline is
+// drawn with MAX blending, so an overlap never adds up into a brighter bead.
 const OUTLINE_FRAGMENT = /* glsl */ `
 precision highp float;
 uniform vec3 uColor;
 uniform vec3 uKeyColor;
 uniform float uOutlineAlpha;
+uniform float uGlow;
+uniform float uHalf;
+varying vec2 vLocal;
+varying float vLen;
 varying float vKey;
 void main() {
-  float a = uOutlineAlpha;
+  float u = max(0.0, max(-vLocal.x, vLocal.x - vLen));
+  float d = length(vec2(u, vLocal.y));
+  float core = 1.0 - smoothstep(0.35, 1.25, d);
+  float haze = (exp(-d * d / 18.0) * 0.45 + exp(-d / 5.0) * 0.12) * (1.0 - smoothstep(uHalf * 0.6, uHalf, d));
+  float a = min(1.0, uOutlineAlpha * (core + haze * uGlow));
+  if (a < 0.003) discard;
   gl_FragColor = vec4(mix(uColor, uKeyColor, vKey) * a, a);
 }`;
 
@@ -245,19 +274,27 @@ function create(): Scene | null {
     uKeyColor: { value: [0.7, 0.6, 0.86] },
     uLineAlpha: { value: 0.2 },
     uOutlineAlpha: { value: 0 },
+    uGlow: { value: 0 },
+    uHalf: { value: 12 },
   };
   const common = { uniforms, transparent: true, depthTest: false, depthWrite: false };
   const pointProgram = new Program(gl, { ...common, vertex: VERTEX, fragment: POINT_FRAGMENT });
   const lineProgram = new Program(gl, { ...common, vertex: LINE_VERTEX, fragment: LINE_FRAGMENT });
   const outlineProgram = new Program(gl, { ...common, vertex: OUTLINE_VERTEX, fragment: OUTLINE_FRAGMENT });
-  const outlinePos = new Float32Array(MAX_OUTLINE * 2 * 3);
-  const outlineKey = new Float32Array(MAX_OUTLINE * 2);
+  // WebGL 1 has MAX blending only through an extension. Without it the joints
+  // brighten a little where segments overlap, which is acceptable.
+  const blendMax = renderer.isWebgl2 ? (gl as WebGL2RenderingContext).MAX : gl.getExtension('EXT_blend_minmax')?.MAX_EXT;
+  if (blendMax) outlineProgram.setBlendEquation(blendMax, blendMax);
+  const outlineSeg = new Float32Array(MAX_OUTLINE * 4);
+  const outlineKey = new Float32Array(MAX_OUTLINE);
   const outlineGeometry = new Geometry(gl, {
-    position: { size: 3, data: outlinePos },
-    aKey: { size: 1, data: outlineKey },
+    position: { size: 2, data: new Float32Array([0, -1, 0, 1, 1, -1, 1, 1]) },
+    index: { data: new Uint16Array([0, 1, 2, 2, 1, 3]) },
+    aSeg: { size: 4, data: outlineSeg, instanced: 1 },
+    aKey: { size: 1, data: outlineKey, instanced: 1 },
   });
   const root = new Transform();
-  const outlineMesh = new Mesh(gl, { geometry: outlineGeometry, program: outlineProgram, mode: gl.LINES });
+  const outlineMesh = new Mesh(gl, { geometry: outlineGeometry, program: outlineProgram });
   outlineMesh.setParent(root);
   new Mesh(gl, { geometry: lines, program: lineProgram, mode: gl.LINES }).setParent(root);
   new Mesh(gl, { geometry: points, program: pointProgram, mode: gl.POINTS }).setParent(root);
@@ -337,7 +374,7 @@ function create(): Scene | null {
           outlineUnit[n * 4 + 1] = y0;
           outlineUnit[n * 4 + 2] = x1;
           outlineUnit[n * 4 + 3] = y1;
-          outlineKey[n * 2] = outlineKey[n * 2 + 1] = o.key ? 1 : 0;
+          outlineKey[n] = o.key ? 1 : 0;
         }
       }
       outlineCount = n;
@@ -462,21 +499,23 @@ function create(): Scene | null {
       lineAlpha[k * 2] = a01;
       lineAlpha[k * 2 + 1] = a01;
     }
-    // The outline arrives as the stars gather and leaves as they scatter.
+    // The outline arrives as the stars gather and leaves as they scatter. Its
+    // haze comes in later than the tube and goes first, so the stars lead and
+    // the glow only crowns a shape that has nearly formed. Light mode keeps
+    // the plain tube, because a haze on a light page reads as a smudge.
     const gather = clamp01((scene.form - 0.2) / 0.7);
-    const outlineAlpha = gather * gather * (dark ? 0.6 : 0.55) * scene.presence;
+    const outlineAlpha = gather * gather * (dark ? 0.75 : 0.55) * scene.presence;
     outlineMesh.visible = outlineAlpha > 0.003 && outlineCount > 0 && rw > 0;
     if (outlineMesh.visible) {
-      for (let n = 0; n < outlineCount; n++) {
-        outlinePos[n * 6] = rx + outlineUnit[n * 4] * rw;
-        outlinePos[n * 6 + 1] = ry + outlineUnit[n * 4 + 1] * rh;
-        outlinePos[n * 6 + 3] = rx + outlineUnit[n * 4 + 2] * rw;
-        outlinePos[n * 6 + 4] = ry + outlineUnit[n * 4 + 3] * rh;
+      for (let n = 0; n < outlineCount * 4; n += 2) {
+        outlineSeg[n] = rx + outlineUnit[n] * rw;
+        outlineSeg[n + 1] = ry + outlineUnit[n + 1] * rh;
       }
-      outlineGeometry.setDrawRange(0, outlineCount * 2);
-      outlineGeometry.attributes.position.needsUpdate = true;
+      outlineGeometry.setInstancedCount(outlineCount);
+      outlineGeometry.attributes.aSeg.needsUpdate = true;
     }
     uniforms.uOutlineAlpha.value = outlineAlpha;
+    uniforms.uGlow.value = dark ? gather * gather * gather : 0;
     uniforms.uLineAlpha.value = (dark ? 0.3 : 0.26) * scene.presence;
     lines.attributes.position.needsUpdate = true;
     lines.attributes.aAlpha.needsUpdate = true;
