@@ -160,6 +160,68 @@ function outlineOfSvg(svg: Element, vw: number, vh: number): Outline[] {
     }
   }
   host.remove();
+  return withoutOverlaps(out);
+}
+
+/**
+ * Drops every stretch of a contour that runs along one already kept. In the
+ * logo, the orbit band's edges lie on the main shape's cut-out where they
+ * cross the planet, so without this those curves are drawn twice and look
+ * heavier than the rest. Violet contours are kept first, so the band's edge
+ * stays violet. A stretch counts as a repeat when its midpoint lies within
+ * `near` of a kept segment, in unit-box units (about 6 of the logo's 1080).
+ */
+function withoutOverlaps(lines: Outline[], near = 0.006): Outline[] {
+  const cell = 0.02;
+  const grid = new Map<string, number[][]>();
+  const at = (x: number, y: number): string => `${Math.floor(x / cell)},${Math.floor(y / cell)}`;
+  const covered = (x: number, y: number): boolean => {
+    const gx = Math.floor(x / cell);
+    const gy = Math.floor(y / cell);
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        for (const [ax, ay, bx, by] of grid.get(`${gx + i},${gy + j}`) ?? []) {
+          const dx = bx - ax;
+          const dy = by - ay;
+          const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+          if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < near) return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const out: Outline[] = [];
+  for (const line of [...lines].sort((a, b) => Number(b.key) - Number(a.key))) {
+    // Split the contour wherever it repeats a kept one, and keep the rest.
+    const runs: Array<Array<[number, number]>> = [];
+    let run: Array<[number, number]> = [];
+    for (let i = 1; i < line.pts.length; i++) {
+      const [x0, y0] = line.pts[i - 1];
+      const [x1, y1] = line.pts[i];
+      if (covered((x0 + x1) / 2, (y0 + y1) / 2)) {
+        if (run.length > 1) runs.push(run);
+        run = [];
+      } else {
+        if (run.length === 0) run.push(line.pts[i - 1]);
+        run.push(line.pts[i]);
+      }
+    }
+    if (run.length > 1) runs.push(run);
+    // Registered only after the whole contour, so its own neighbouring
+    // segments never count as repeats of each other.
+    for (const pts of runs) {
+      out.push({ pts, key: line.key });
+      for (let i = 1; i < pts.length; i++) {
+        const [x0, y0] = pts[i - 1];
+        const [x1, y1] = pts[i];
+        const k = at((x0 + x1) / 2, (y0 + y1) / 2);
+        const list = grid.get(k) ?? [];
+        list.push([x0, y0, x1, y1]);
+        grid.set(k, list);
+      }
+    }
+  }
   return out;
 }
 
