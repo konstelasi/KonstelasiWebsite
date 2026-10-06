@@ -16,6 +16,14 @@ ErrorDocument 404 /404.html
   RedirectMatch 301 ^/(id/)?project/routemate/?$ /$1software/routemate/
   RedirectMatch 301 ^/(id/)?projects/?$ /$1labs/
   RedirectMatch 301 ^/(id/)?development-status/[^/]+/?$ /$1labs/
+
+  # WordPress put the date in a post's URL. The slugs stayed the same.
+  RedirectMatch 301 ^/(id/)?2025/12/24/stars-align-starcore-reaches-stability-with-v0-2-0/?$ /$1blog/stars-align-starcore-reaches-stability-with-v0-2-0/
+  RedirectMatch 301 ^/(id/)?2026/04/07/stardust-v0-3-0-scaling-codeigniter-4-with-vertical-schema-partitioning/?$ /$1blog/stardust-v0-3-0-scaling-codeigniter-4-with-vertical-schema-partitioning/
+  RedirectMatch 301 ^/(id/)?category/blog/?$ /$1blog/
+
+  # Feed readers subscribed to the WordPress feeds get the new one.
+  RedirectMatch 301 ^/(id/)?(category/blog/)?feed/?$ /$1blog/rss.xml
 </IfModule>
 
 # Files under /_astro/ carry a content hash in their name, so they never

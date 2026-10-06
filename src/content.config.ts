@@ -1,6 +1,9 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { existsSync, readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+import { blogLoader } from './lib/blog-loader';
 
 /*
  * Every collection keeps one file per language under `en/` and `id/`, with
@@ -57,12 +60,20 @@ const services = defineCollection({
 });
 
 /**
- * Blog posts carried over from the old site. Like the portfolio, they are
- * kept but not published: no route reads them and nothing links to them
- * until the blog is built.
+ * Where the blog posts come from. With `BLOG_API_URL` set, in the shell or
+ * in a local `.env`, they come from the blog admin's API; without it, from
+ * the Markdown files. A variable set in the shell wins, even when empty, so
+ * `deploy.sh` decides the source of a deploy whatever `.env` says.
  */
+function blogApiUrl(): string {
+  if (process.env.BLOG_API_URL !== undefined) return process.env.BLOG_API_URL;
+  return existsSync('.env') ? (parseEnv(readFileSync('.env', 'utf8')).BLOG_API_URL ?? '') : '';
+}
+
+/** Blog posts, published at `/blog/<slug>/`, newest first on `/blog/`. */
+const blogApi = blogApiUrl();
 const blog = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
+  loader: blogApi ? blogLoader(blogApi) : glob({ pattern: '**/*.md', base: './src/content/blog' }),
   schema: z.object({
     title: z.string(),
     description: z.string(),

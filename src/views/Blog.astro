@@ -1,0 +1,190 @@
+---
+import Base from '../layouts/Base.astro';
+import { type Lang, localePath, formatDate } from '../i18n';
+import { posts, slugOf } from '../lib/content';
+import { staticPages } from '../lib/pages';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const meta = staticPages['/blog/'][lang];
+const list = await posts(lang);
+
+const copy = {
+  en: {
+    title: 'What we ship, and why',
+    lede: 'Releases, the decisions behind them, and what we learned on the way. Written by the people who build the software.',
+  },
+  id: {
+    title: 'Apa yang kami rilis, dan alasannya',
+    lede: 'Rilis, keputusan di baliknya, dan pelajaran yang kami dapat di sepanjang jalan. Ditulis langsung oleh orang-orang yang membangun software-nya.',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={meta.title} description={meta.description}>
+  <div class="blog">
+    <header>
+      <h1 data-split="words">{copy.title}</h1>
+      <p>{copy.lede}</p>
+    </header>
+
+    <ol class="timeline">
+      {list.map((post) => (
+        <li>
+          <time datetime={post.data.published.toISOString().slice(0, 10)}>{formatDate(lang, post.data.published)}</time>
+          <span class="rail" aria-hidden="true"><span class="star"></span></span>
+          <div class="entry">
+            <h2 style={`view-transition-name: post-${slugOf(post)}`}>
+              <a href={localePath(lang, `/blog/${slugOf(post)}/`)}>{post.data.title}</a>
+            </h2>
+            <p>{post.data.description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</Base>
+
+<style>
+  /* Posts hang off one line in the order they were written, newest at the
+     top. The heading starts the line, so it sits in the same column as the
+     post titles rather than centred above them. */
+  .blog {
+    --date-col: 11rem;
+    --rail-col: 2.5rem;
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding: clamp(3rem, 10vh, 7rem) var(--gutter) clamp(3rem, 8vh, 5rem);
+  }
+
+  header {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 46rem;
+    margin-left: calc(var(--date-col) + var(--rail-col));
+    padding-bottom: clamp(2.5rem, 7vh, 4.5rem);
+  }
+  h1 {
+    font-size: clamp(2.3rem, 5vw, 4.2rem);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+  header p {
+    max-width: 34rem;
+    color: var(--text-dim);
+  }
+
+  .timeline {
+    list-style: none;
+  }
+  .timeline li {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--date-col) var(--rail-col) minmax(0, 46rem);
+    grid-template-areas: 'date rail entry';
+  }
+
+  time {
+    grid-area: date;
+    padding-top: 0.55rem;
+    padding-right: 1.25rem;
+    text-align: right;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+  }
+
+  /* The line runs through every star, starting at the first one and ending
+     at the last one. */
+  .rail {
+    grid-area: rail;
+    position: relative;
+  }
+  .rail::before {
+    content: '';
+    position: absolute;
+    left: calc(50% - 0.5px);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border-bright);
+  }
+  li:first-child .rail::before { top: 1.15rem; }
+  li:last-child .rail::before { bottom: auto; height: 1.15rem; }
+  .star {
+    position: absolute;
+    left: 50%;
+    top: 1.15rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow: 0 0 0 0.3rem var(--bg);
+    transition: background-color 0.2s var(--ease), scale 0.2s var(--ease);
+  }
+
+  .entry {
+    grid-area: entry;
+    display: grid;
+    gap: 0.6rem;
+    padding-bottom: clamp(2.5rem, 6vh, 3.75rem);
+  }
+  h2 {
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.025em;
+  }
+  /* The whole entry is the link's hit area, so the date and the summary
+     open the post too. */
+  h2 a {
+    text-decoration: none;
+    transition: color 0.2s var(--ease);
+  }
+  h2 a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .entry p {
+    max-width: 38rem;
+    color: var(--text-dim);
+  }
+
+  li:hover h2 a,
+  li:focus-within h2 a { color: var(--brand); }
+  li:hover .star,
+  li:focus-within .star {
+    background: var(--brand);
+    scale: 1.35;
+  }
+
+  /* On phones the date moves above the title and the line hugs the left
+     edge. */
+  @media (max-width: 44rem) {
+    .blog { --date-col: 0rem; --rail-col: 1.75rem; }
+    header { margin-left: 0; }
+    .timeline li {
+      grid-template-columns: var(--rail-col) minmax(0, 1fr);
+      grid-template-areas:
+        'rail date'
+        'rail entry';
+    }
+    .rail { translate: -0.4rem 0; }
+    time {
+      padding: 0.6rem 0 0.25rem;
+      text-align: left;
+    }
+    li:first-child .rail::before,
+    .star { top: 1.3rem; }
+    li:last-child .rail::before { height: 1.3rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .star { transition: none; }
+  }
+</style>

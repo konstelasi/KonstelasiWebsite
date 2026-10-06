@@ -7,8 +7,8 @@ Guidance for AI coding agents in this repository. What the site is, how it's bui
 - Astro, static output only. `npm run build` writes `dist/`, which Apache on a cPanel host serves as plain files. Nothing may need a Node runtime at request time.
 - English lives at the root, Indonesian under `/id/`. Every page exists in both languages under the same English path (`/about/` and `/id/about/`), because the hreflang tags, the language switch and the OG image names all assume it.
 - Route files in `src/pages/` are thin: each one renders a view from `src/views/` with a `lang` prop. Page copy sits in the view, as an `en` and an `id` object side by side, so a translation is checked against its source in one place. Shared UI strings are in `src/i18n/{en,id}.json`; `src/i18n/index.ts` types the Indonesian file against the English one.
-- Products, services, the policy page and the (unpublished) blog are content collections in `src/content/<collection>/{en,id}/<slug>.md`. The same file name in both folders is what pairs the two languages.
-- `src/templates/` and the `portfolio` and `blog` collections are deliberately unrouted. Never link to them or add a route for them unless asked.
+- Products, services, the policy page and the blog are content collections in `src/content/<collection>/{en,id}/<slug>.md`. The same file name in both folders is what pairs the two languages.
+- `src/templates/` and the `portfolio` collection are deliberately unrouted. Never link to them or add a route for them unless asked.
 - Old WordPress URLs are kept or redirected (301) in `public/.htaccess`. A page that moves needs a rule there.
 
 ## Design rules
@@ -83,7 +83,7 @@ Every human-read text here (page copy, content files, code comments, README) fol
 - Pinned sections (home services, About values, product diagrams) are created after layout settles. Call `ScrollTrigger.refresh()` after creating a pin, so every trigger below it accounts for the spacer.
 - `motion-ready` is only set with motion on. Don't key a reduced-motion final state on it.
 - Expected build warnings: the empty `portfolio` collection and the missing `src/icons/` folder. Anything else is new.
-- The blog posts are content without a route, deliberately. The old blog URLs are not redirected yet either; see README.md "Old URLs".
+- `KonstelasiBlog/` is a separate git repo nested here on purpose: the blog's admin and API (Laravel and Filament, at blog.konstelasi.co.id). It has its own CLAUDE.md. Never stage its files in this repo; `tsconfig.json` excludes it.
 - `git config core.autocrlf` is on for this machine, so `.gitattributes` forces LF. `deploy.sh` breaks on the host with CRLF.
 
 ## Commits

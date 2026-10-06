@@ -27,6 +27,9 @@ export async function ogPages(): Promise<OgPage[]> {
     for (const s of await entriesIn('services', lang)) {
       pages.push({ lang, name: ogName(`/service/${slugOf(s)}/`), title: s.data.name, subtitle: s.data.summary });
     }
+    for (const b of await entriesIn('blog', lang)) {
+      pages.push({ lang, name: ogName(`/blog/${slugOf(b)}/`), title: b.data.title, subtitle: b.data.description });
+    }
     for (const l of await entriesIn('legal', lang)) {
       pages.push({ lang, name: ogName(`/${slugOf(l)}/`), title: l.data.title, subtitle: l.data.description });
     }

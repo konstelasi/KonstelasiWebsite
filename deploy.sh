@@ -32,6 +32,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# The blog builds from the Markdown files in src/content/blog until the blog
+# admin is live, whatever a local .env says. Setting this to the admin's URL
+# is the switch to its API.
+export BLOG_API_URL=""
+
 echo "==> Building..."
 npm ci
 npm run build

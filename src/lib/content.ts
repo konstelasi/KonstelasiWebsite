@@ -20,6 +20,12 @@ export async function entriesIn<C extends Key>(collection: C, lang: Lang): Promi
   return all.filter((e) => splitId(e.id).lang === lang);
 }
 
+/** Blog posts in one language, newest first. */
+export async function posts(lang: Lang): Promise<CollectionEntry<'blog'>[]> {
+  const list = await entriesIn('blog', lang);
+  return list.sort((a, b) => b.data.published.getTime() - a.data.published.getTime());
+}
+
 /** Products and services in their display order. */
 export async function ordered<C extends 'products' | 'services'>(collection: C, lang: Lang): Promise<CollectionEntry<C>[]> {
   const list = await entriesIn(collection, lang);

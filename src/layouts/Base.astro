@@ -90,6 +90,7 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`Blog | ${t.site.name}`} href={localePath(lang, '/blog/rss.xml')} />
     <meta name="generator" content={Astro.generator} />
   </head>
   <body data-sky={sky}>

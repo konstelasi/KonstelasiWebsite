@@ -1,0 +1,177 @@
+---
+import { Icon } from 'astro-icon/components';
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { type Lang, localePath, formatDate } from '../i18n';
+import { posts, slugOf } from '../lib/content';
+
+interface Props {
+  lang: Lang;
+  entry: CollectionEntry<'blog'>;
+}
+
+const { lang, entry } = Astro.props;
+const { Content } = await render(entry);
+const slug = slugOf(entry);
+const post = entry.data;
+
+// About 200 words a minute, counted on the Markdown source.
+const words = (entry.body ?? '').split(/\s+/).filter(Boolean).length;
+const minutes = Math.max(1, Math.round(words / 200));
+
+// The next post is the one written before this one. The oldest post points
+// back to the newest, so every post has somewhere to go.
+const all = await posts(lang);
+const at = all.findIndex((p) => p.id === entry.id);
+const next = all.length > 1 ? all[(at + 1) % all.length] : undefined;
+
+const copy = {
+  en: {
+    all: 'All posts',
+    published: 'Published',
+    author: 'Written by',
+    reading: 'Reading time',
+    minutes: `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`,
+    next: 'Read next',
+  },
+  id: {
+    all: 'Semua tulisan',
+    published: 'Terbit',
+    author: 'Penulis',
+    reading: 'Waktu baca',
+    minutes: `${minutes} menit`,
+    next: 'Baca berikutnya',
+  },
+}[lang];
+---
+
+<Base lang={lang} title={post.title} description={post.description} article={{ published: post.published }} sky="quiet">
+  <article>
+    <header>
+      <a class="back" href={localePath(lang, '/blog/')}>
+        <Icon name="lucide:arrow-left" aria-hidden="true" />{copy.all}
+      </a>
+      <h1 data-split="lines" style={`view-transition-name: post-${slug}`}>{post.title}</h1>
+      <p class="lead">{post.description}</p>
+    </header>
+
+    <div class="body">
+      <dl class="meta">
+        <div><dt>{copy.published}</dt><dd><time datetime={post.published.toISOString().slice(0, 10)}>{formatDate(lang, post.published)}</time></dd></div>
+        <div><dt>{copy.author}</dt><dd>{post.author}</dd></div>
+        <div><dt>{copy.reading}</dt><dd>{copy.minutes}</dd></div>
+      </dl>
+
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    {next && (
+      <nav class="next" aria-labelledby="next-label">
+        <p id="next-label">{copy.next}</p>
+        <a href={localePath(lang, `/blog/${slugOf(next)}/`)}>{next.data.title}</a>
+      </nav>
+    )}
+  </article>
+</Base>
+
+<style>
+  /* A reading page set to the left, not centred. The facts about the post
+     ride along in a narrow column beside the text instead of stacking
+     above it. */
+  article {
+    max-width: var(--w-wide);
+    margin: 0 auto;
+    padding: clamp(2rem, 6vh, 4rem) var(--gutter) clamp(3rem, 8vh, 5rem);
+  }
+
+  header {
+    display: grid;
+    gap: 1.4rem;
+    justify-items: start;
+    padding-bottom: clamp(2.5rem, 7vh, 4.5rem);
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s var(--ease), gap 0.2s var(--ease);
+  }
+  .back:hover { color: var(--text); gap: 0.65em; }
+  .back svg { width: 1em; height: 1em; }
+
+  h1 {
+    max-width: 22ch;
+    font-size: clamp(2.1rem, 4.8vw, 3.9rem);
+    font-weight: 500;
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+  }
+  .lead {
+    max-width: 40rem;
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .body {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 42rem);
+    gap: 1.5rem clamp(2rem, 5vw, 5rem);
+    align-items: start;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .meta {
+    position: sticky;
+    top: 2rem;
+    display: grid;
+    gap: 1.1rem;
+    font-size: 0.9rem;
+  }
+  .meta dt { color: var(--text-faint); }
+  .meta dd { color: var(--text); }
+
+  .next {
+    display: grid;
+    gap: 0.4rem;
+    max-width: 42rem;
+    margin: clamp(3.5rem, 9vh, 6rem) 0 0 calc(12rem + clamp(2rem, 5vw, 5rem));
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .next p {
+    font-size: 0.9rem;
+    color: var(--text-faint);
+  }
+  .next a {
+    font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    transition: color 0.2s var(--ease);
+  }
+  .next a:hover { color: var(--brand); }
+
+  /* Below tablet width the facts become one wrapped row above the text. */
+  @media (max-width: 56rem) {
+    .body { grid-template-columns: minmax(0, 1fr); }
+    .meta {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 2rem;
+    }
+    .next { margin-left: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .back, .next a { transition: none; }
+  }
+</style>

@@ -43,11 +43,21 @@ Around it, GSAP drives the rest. Headings enter by line, word or letter, the pro
 
 Visitors who ask their system for reduced motion get a still site with every drawing in its finished state, and the same happens without JavaScript. Without WebGL, the SVG versions of the home drawings take over. The code is in `src/motion/` for the shared parts, and in a `*-motion.ts` file next to each page or component for the rest.
 
+## Blog
+
+Posts are Markdown files in `src/content/blog/`, one per language under `en/` and `id/` with the same file name. The index is at `/blog/` and each post at `/blog/<slug>/`, with the Indonesian pages under `/id/blog/`. A new post needs both files before it can be published, because every page on the site exists in both languages. Each language has an RSS feed, `/blog/rss.xml` and `/id/blog/rss.xml`, which the old WordPress feed addresses redirect to.
+
+The posts will move into the blog admin in `KonstelasiBlog/`, a separate repository at blog.konstelasi.co.id. Until it is live the Markdown files are the source, and `deploy.sh` always builds from them.
+
+To preview posts from a local copy of the admin, set `BLOG_API_URL` in a `.env` file at the root of this repository (or in the shell), and keep `php artisan serve` running in `KonstelasiBlog/`.
+
+```
+BLOG_API_URL=http://localhost:8000
+```
+
+The dev server reads the posts once when it starts. After editing a post in the admin, type `s` and press Enter in the terminal running `npm run dev` to load them again. Remove the line to go back to the Markdown files.
+
 ## Kept but not published
-
-Two parts of the site are written but have no route yet.
-
-The **blog** posts from the old site are in `src/content/blog/`, in both languages. Nothing links to them and no page renders them until the blog itself is built.
 
 The **portfolio** has a template, `src/templates/PortfolioPage.astro`, and a `portfolio` collection with no entries. To publish the first case study:
 
@@ -59,7 +69,7 @@ The **portfolio** has a template, `src/templates/PortfolioPage.astro`, and a `po
 
 The old WordPress site used the same paths for most pages, so they carry over unchanged. The ones that moved are redirected with a 301 in `public/.htaccess`, which Apache reads on the host.
 
-The old blog addresses (`/blog/`, `/category/blog/` and the two dated post URLs) are not redirected yet, because the blog isn't published. They need a rule, or the new blog, before the main domain switches over.
+The blog kept its `/blog/` address and its post slugs. WordPress put the date in a post's URL, such as `/2025/12/24/<slug>/`, so each old post has a rule that sends it to `/blog/<slug>/`, and `/category/blog/` goes to `/blog/`.
 
 ## Deploying
 

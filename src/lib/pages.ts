@@ -41,6 +41,16 @@ export const staticPages: Record<string, Record<Lang, PageMeta>> = {
       description: 'Riset kami, karya open source kami, dan software yang pertama-tama kami bangun untuk diri sendiri.',
     },
   },
+  '/blog/': {
+    en: {
+      title: 'Blog',
+      description: 'Releases, design decisions and lessons from the software we build at Konstelasi.',
+    },
+    id: {
+      title: 'Blog',
+      description: 'Rilis, keputusan desain, dan pelajaran dari software yang kami bangun di Konstelasi.',
+    },
+  },
   '/contact-us/': {
     en: {
       title: 'Contact',
