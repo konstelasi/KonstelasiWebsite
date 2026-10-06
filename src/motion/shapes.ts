@@ -8,6 +8,9 @@
  * - `path`: position along a connector, 0 to 1, for travelling pulses. -1
  *   for points that aren't on a connector.
  * - `weight`: brightness, 0 to 1.
+ * - `room`: how far the point is from the edge of its filled region, as a
+ *   fraction of the shape's height, so the scene can let it float without
+ *   leaving the shape. 0 for points on a line, which hold still.
  *
  * A shape also has an `outline`: polylines in the same unit box that trace
  * what the stars are meant to be. The scene lights them once the stars have
@@ -31,6 +34,7 @@ export interface Shape {
   key: Float32Array;
   path: Float32Array;
   weight: Float32Array;
+  room: Float32Array;
   outline: Outline[];
 }
 
@@ -58,6 +62,7 @@ interface Pt {
   key: number;
   path: number;
   weight: number;
+  room?: number;
 }
 
 function build(points: Pt[], aspect: number, outline: Outline[] = []): Shape {
@@ -70,6 +75,7 @@ function build(points: Pt[], aspect: number, outline: Outline[] = []): Shape {
     key: new Float32Array(n),
     path: new Float32Array(n),
     weight: new Float32Array(n),
+    room: new Float32Array(n),
     outline,
   };
   // Shuffle, so the particles that join a shape first are spread over all
@@ -84,8 +90,24 @@ function build(points: Pt[], aspect: number, outline: Outline[] = []): Shape {
     s.key[i] = p.key;
     s.path[i] = p.path;
     s.weight[i] = p.weight;
+    s.room[i] = p.room ?? 0;
   });
   return s;
+}
+
+/**
+ * How many mask pixels a point at (x, y) can move in any direction and stay
+ * `inside`, up to `max`. Probed on rings in eight directions, which is close
+ * enough for a star that floats a few pixels.
+ */
+function roomAt(inside: (x: number, y: number) => boolean, x: number, y: number, max: number): number {
+  for (let r = 1; r <= max; r++) {
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      if (!inside(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r))) return r - 1;
+    }
+  }
+  return max;
 }
 
 function context(): CanvasRenderingContext2D {
@@ -111,6 +133,28 @@ export function fromSvg(markup: string, n: number): Shape {
     opacity: Number(el.getAttribute('fill-opacity') ?? 1),
   }));
 
+  // A small mask with each path painted in its own red value, in drawing
+  // order, so a pixel holds the topmost path there. A point's room is how far
+  // it can go and still sit on the same path, so a star in the orbit band
+  // never drifts onto the planet. Antialiased edge pixels match no path,
+  // which only makes the room a little smaller.
+  const mw = 360;
+  const mh = Math.max(1, Math.round((mw * vh) / vw));
+  const mask = context();
+  mask.canvas.width = mw;
+  mask.canvas.height = mh;
+  mask.scale(mw / vw, mh / vh);
+  paths.forEach(({ path, rule }, p) => {
+    mask.fillStyle = `rgb(${p + 1}, 0, 0)`;
+    mask.fill(path, rule);
+  });
+  const pixels = mask.getImageData(0, 0, mw, mh).data;
+  const pathAt = (x: number, y: number): number => {
+    if (x < 0 || y < 0 || x >= mw || y >= mh) return -1;
+    const o = (y * mw + x) * 4;
+    return pixels[o + 3] === 255 ? pixels[o] - 1 : -1;
+  };
+
   const points: Pt[] = [];
   let guard = n * 400;
   while (points.length < n && guard-- > 0) {
@@ -121,7 +165,8 @@ export function fromSvg(markup: string, n: number): Shape {
       const { path, rule, opacity } = paths[p];
       if (!ctx.isPointInPath(path, x, y, rule)) continue;
       const faint = opacity < 0.5;
-      points.push({ x: x / vw, y: y / vh, key: faint ? 1 : 0, path: -1, weight: faint ? 0.9 : 1 });
+      const room = roomAt((px, py) => pathAt(px, py) === p, (x / vw) * mw, (y / vh) * mh, 8) / mh;
+      points.push({ x: x / vw, y: y / vh, key: faint ? 1 : 0, path: -1, weight: faint ? 0.9 : 1, room });
       break;
     }
   }
@@ -239,12 +284,13 @@ export function fromText(text: string, n: number, font = '600 200px Poppins, san
   ctx.fillText(text, 10, 10 + m.actualBoundingBoxAscent);
   const data = ctx.getImageData(0, 0, w, h).data;
 
+  const inside = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < w && y < h && data[(y * w + x) * 4 + 3] > 128;
   const points: Pt[] = [];
   let guard = n * 400;
   while (points.length < n && guard-- > 0) {
     const x = Math.floor(Math.random() * w);
     const y = Math.floor(Math.random() * h);
-    if (data[(y * w + x) * 4 + 3] > 128) points.push({ x: x / w, y: y / h, key: 0, path: -1, weight: 1 });
+    if (inside(x, y)) points.push({ x: x / w, y: y / h, key: 0, path: -1, weight: 1, room: roomAt(inside, x, y, 8) / h });
   }
   return build(points, w / h);
 }

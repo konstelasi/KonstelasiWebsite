@@ -178,12 +178,22 @@ function create(): Scene | null {
   const baseDepth = new Float32Array(N);
   const stagger = new Float32Array(N);
   const twinkle = new Float32Array(N);
+  // How a star floats and glitters while it holds a filled shape: its own
+  // slow speeds and phases on each axis, and when its glints come round.
+  const floatX = new Float32Array(N);
+  const floatY = new Float32Array(N);
+  const floatPhase = new Float32Array(N);
+  const glint = new Float32Array(N);
   for (let i = 0; i < N; i++) {
     homeX[i] = Math.random();
     homeY[i] = Math.random();
     baseDepth[i] = Math.pow(Math.random(), 2.2);
     stagger[i] = Math.random() * 0.55;
     twinkle[i] = Math.random() * Math.PI * 2;
+    floatX[i] = 0.25 + Math.random() * 0.45;
+    floatY[i] = 0.25 + Math.random() * 0.45;
+    floatPhase[i] = Math.random() * Math.PI * 2;
+    glint[i] = 0.3 + Math.random() * 0.6;
   }
   depth.set(baseDepth);
   skyX.set(homeX);
@@ -422,8 +432,18 @@ function create(): Scene | null {
       let inShape = 0;
       if (shape && i < shape.count && rw > 0) {
         const w = ease((scene.form * 1.55 - stagger[i]) / 1);
-        const tx = rx + shape.x[i] * rw;
-        const ty = ry + shape.y[i] * rh;
+        let tx = rx + shape.x[i] * rw;
+        let ty = ry + shape.y[i] * rh;
+        // A star in a filled shape floats about its place, never further than
+        // its room, so the shape keeps its edge. Each axis mixes two sines
+        // whose weights add up to 1, so it moves at most 0.7 of the room and
+        // the drift as a whole stays inside it.
+        const room = Math.min(shape.room[i] * rh * 0.7, 7);
+        if (room > 0) {
+          const ph = floatPhase[i];
+          tx += room * (Math.sin(time * floatX[i] + ph) * 0.7 + Math.sin(time * floatX[i] * 2.3 + ph * 1.7) * 0.3);
+          ty += room * (Math.sin(time * floatY[i] + ph * 2.1) * 0.7 + Math.sin(time * floatY[i] * 1.9 + ph * 0.6) * 0.3);
+        }
         // While breaking apart, stars arc outward from the shape's centre.
         const arc = Math.sin(w * Math.PI) * scene.burst * 140;
         const dx = tx - cx;
@@ -461,9 +481,14 @@ function create(): Scene | null {
         // A pulse runs along connector points, as data travelling the line.
         const p = shape.path[i];
         const pulse = p >= 0 ? Math.pow(Math.max(0, 1 - Math.abs(((p - time * 0.22) % 1 + 1) % 1 - 0.5) * 9), 2) : 0;
-        const shapeAlpha = 0.75 * shape.weight[i] + pulse * 0.9;
+        // Stars in a filled shape glitter: a slow shimmer, and now and then a
+        // short glint, a sine raised to a high power so it only peaks briefly.
+        const filled = shape.room[i] > 0 ? 1 : 0;
+        const shimmer = 1 - filled * 0.18 * (0.5 + 0.5 * Math.sin(time * 1.7 + twinkle[i]));
+        const flash = filled * Math.pow(Math.max(0, Math.sin(time * glint[i] + twinkle[i] * 3)), 60);
+        const shapeAlpha = (0.75 * shape.weight[i] + pulse * 0.9) * shimmer + flash * 0.7;
         a = skyAlpha + (shapeAlpha - skyAlpha) * inShape;
-        s = s + (2.3 + pulse * 3 - s) * inShape;
+        s = s + (2.3 + pulse * 3 + flash * 2.2 - s) * inShape;
       } else if (shape) {
         // Stars not in the shape step back while it holds.
         a *= 1 - scene.form * 0.65;
