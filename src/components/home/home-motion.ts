@@ -48,7 +48,21 @@ async function start(): Promise<void> {
   const mark = fromSvg(logoSvg, Math.min(scene.count, 1100));
   const intro = { v: 0 };
   gsap.to(intro, { v: 1, duration: 2.4, ease: 'power2.inOut', delay: 0.15 });
-  const leave = ScrollTrigger.create({ trigger: opening, start: 'top top', end: 'bottom 25%' });
+  // The mark lets go as the opening scrolls away. On a phone the mark sits
+  // under the headline, so starting at the top of the page would put the
+  // outline out about when the mark comes into view. There it holds until
+  // the mark is centred on the screen.
+  const sky = opening.querySelector<HTMLElement>('.opening-sky');
+  const leave = ScrollTrigger.create({
+    trigger: opening,
+    start: () => {
+      const top = opening.getBoundingClientRect().top + window.scrollY;
+      if (wide.matches || !sky) return top;
+      const r = sky.getBoundingClientRect();
+      return Math.max(top, r.top + window.scrollY + r.height / 2 - window.innerHeight / 2);
+    },
+    end: 'bottom 25%',
+  });
 
   // The pinned services sequence, on wide screens only.
   let system: Shape[] = [];
