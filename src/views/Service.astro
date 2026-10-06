@@ -177,12 +177,15 @@ const copy = {
   }
   .problems li {
     counter-increment: p;
-    display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr);
+    position: relative;
+    padding-left: 2rem;
     color: var(--text-dim);
   }
   /* Struck through one by one as the solution arrives (service-motion.ts).
-     The line is a background, so it can draw across from left to right. */
+     The line is a background, so it can draw across from left to right. The
+     span must stay inline (a grid or flex parent would make it a block), so
+     the line runs through every wrapped line in reading order instead of
+     once across the whole paragraph. */
   .problems li span {
     background: linear-gradient(var(--brand), var(--brand)) no-repeat 0 55% / 0% 1.5px;
     transition: background-size 0.7s var(--ease-out), color 0.5s var(--ease);
@@ -193,6 +196,9 @@ const copy = {
   }
   .problems li::before {
     content: counter(p);
+    position: absolute;
+    top: 0;
+    left: 0;
     font: 400 0.8rem/1.9 var(--mono);
     color: var(--text-faint);
   }
