@@ -3,7 +3,8 @@
  *
  * At rest it is a sky of stars at three depths, drifting slowly, joined by
  * faint lines, moving with the scroll at different speeds and leaning a
- * little toward the pointer. A page can ask it to assemble into a shape
+ * little toward the pointer. On dark, the constellation stars and a few
+ * others glow. A page can ask it to assemble into a shape
  * (`assemble`) fitted into an element, and to let it go again. `form`, from
  * 0 (sky) to 1 (shape), is a plain number, so GSAP can tween it or scrub it
  * with the scroll.
@@ -23,28 +24,39 @@ attribute vec3 position;
 attribute float aSize;
 attribute float aAlpha;
 attribute float aKey;
+attribute float aGlow;
 uniform vec2 uResolution;
 uniform float uDpr;
 varying float vAlpha;
 varying float vKey;
+varying float vGlow;
 void main() {
   vec2 clip = position.xy / uResolution * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
-  gl_PointSize = aSize * uDpr;
+  // A glowing star's sprite grows to make room for its halo, and the
+  // fragment shader scales back, so the core stays the same size.
+  gl_PointSize = aSize * (1.0 + aGlow * 2.5) * uDpr;
   vAlpha = aAlpha;
   vKey = aKey;
+  vGlow = aGlow;
 }`;
 
+// `r` is in core units, 0.5 at the edge of the core. A glowing star adds a
+// halo that falls off well past the core and fades out before the sprite's
+// edge, so its square never shows.
 const POINT_FRAGMENT = /* glsl */ `
 precision highp float;
 uniform vec3 uColor;
 uniform vec3 uKeyColor;
 varying float vAlpha;
 varying float vKey;
+varying float vGlow;
 void main() {
-  float d = length(gl_PointCoord - 0.5);
-  float core = smoothstep(0.5, 0.05, d);
-  float a = core * core * vAlpha;
+  float spread = 1.0 + vGlow * 2.5;
+  float r = length(gl_PointCoord - 0.5) * spread;
+  float core = smoothstep(0.5, 0.05, r);
+  float halo = vGlow * 0.6 * exp(-r * 2.6) * smoothstep(0.5 * spread, 0.3 * spread, r);
+  float a = (core * core + halo) * vAlpha;
   if (a < 0.004) discard;
   gl_FragColor = vec4(mix(uColor, uKeyColor, vKey) * a, a);
 }`;
@@ -203,12 +215,21 @@ function create(): Scene | null {
   const size = new Float32Array(N);
   const alpha = new Float32Array(N);
   const key = new Float32Array(N);
+  const glow = new Float32Array(N);
+  // Which stars glow while loose in the sky. Every constellation star does
+  // (set in buildConstellations), and a few loose ones, more often the near.
+  const looseGlow = new Float32Array(N);
+  const baseGlow = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    looseGlow[i] = Math.random() < 0.015 + baseDepth[i] * 0.06 ? 0.3 + Math.random() * 0.4 : 0;
+  }
 
   const points = new Geometry(gl, {
     position: { size: 3, data: position },
     aSize: { size: 1, data: size },
     aAlpha: { size: 1, data: alpha },
     aKey: { size: 1, data: key },
+    aGlow: { size: 1, data: glow },
   });
 
   // Constellations. A handful of real figures (see constellations.ts) are
@@ -231,6 +252,7 @@ function create(): Scene | null {
     const W = window.innerWidth;
     const H = window.innerHeight;
     depth.set(baseDepth);
+    baseGlow.set(looseGlow);
     skyX.set(homeX);
     skyY.set(homeY);
     links.length = 0;
@@ -266,6 +288,7 @@ function create(): Scene | null {
         skyX[i] = (x + 40) / (W + 80);
         skyY[i] = (y + 40) / (H + 80);
         depth[i] = z;
+        baseGlow[i] = 0.65 + Math.random() * 0.35;
         return i;
       });
       for (const [a, b] of c.edges) {
@@ -497,6 +520,9 @@ function create(): Scene | null {
       size[i] = s;
       // Violet only while a star is part of a shape, never loose in the sky.
       key[i] = shape && i < shape.count ? shape.key[i] * inShape : 0;
+      // The glow belongs to the open sky, so it fades as a star joins a shape.
+      // Dark only, because a halo of ink on a light page reads as a smudge.
+      glow[i] = dark ? baseGlow[i] * (1 - inShape) : 0;
     }
 
     // A line is drawn only while its two stars still sit where the sky put
@@ -549,6 +575,7 @@ function create(): Scene | null {
     points.attributes.aAlpha.needsUpdate = true;
     points.attributes.aSize.needsUpdate = true;
     points.attributes.aKey.needsUpdate = true;
+    points.attributes.aGlow.needsUpdate = true;
     renderer.render({ scene: root });
   }
 
