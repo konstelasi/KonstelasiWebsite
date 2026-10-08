@@ -83,10 +83,10 @@ The blog kept its `/blog/` address and its post slugs. WordPress put the date in
 `deploy.sh` builds the site, runs the four `verify:` checks on the result, uploads it over SSH and unpacks it on the host. It reads the host, port, user and key from a `konstelasi` alias in your own `~/.ssh/config`, so no credential lives in this repository.
 
 ```bash
-bash deploy.sh             # staging, kept out of search engines
-bash deploy.sh production  # public_html, the main domain's document root
+bash deploy.sh          # production: public_html, the main domain's document root
+bash deploy.sh staging  # the staging subdomain, kept out of search engines
 ```
 
-Set `DEPLOY_HOST` to use a different alias from `~/.ssh/config`. On Windows, run it from Git Bash, because `npm run deploy` may find the WSL `bash.exe` first.
+The script unlocks your SSH key itself, asking for the passphrase once per run, so a fresh terminal needs nothing else. If you have no `konstelasi` alias, put `export DEPLOY_HOST=<your alias>` in `~/.bashrc` once. On Windows, run it from Git Bash, because `npm run deploy` may find the WSL `bash.exe` first.
 
 Production deploys into `public_html`, because the main domain's document root is fixed there. `deploy.sh` refuses to run while a WordPress `wp-config.php` is still in the target folder, so a build can never be unpacked over an old install.

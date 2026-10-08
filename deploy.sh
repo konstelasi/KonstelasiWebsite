@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Manual deploy: build the site and push it to the cPanel host.
 #
-#   bash deploy.sh            # staging (the default)
-#   bash deploy.sh production # public_html, the main domain's document root
+#   bash deploy.sh            # production: public_html, the main domain's document root
+#   bash deploy.sh staging    # the staging subdomain, kept out of search engines
 #
 # It assumes a `konstelasi` entry in your own ~/.ssh/config (host, port, user
 # and key), so no credential of any kind lives in this repository. Set
-# DEPLOY_HOST to use another alias. Run it from Git Bash on Windows, since
-# `npm run` may find the WSL bash.exe first.
+# DEPLOY_HOST to use another alias, for example in ~/.bashrc. The key is
+# unlocked once per run, so a fresh terminal needs nothing else. Run it from
+# Git Bash on Windows, since `npm run` may find the WSL bash.exe first.
 set -euo pipefail
 
-TARGET="${1:-staging}"
+TARGET="${1:-production}"
 REMOTE_HOST="${DEPLOY_HOST:-konstelasi}"
 
 # Folders are relative to the remote $HOME, the default working directory of
@@ -30,8 +31,19 @@ ARCHIVE_NAME="konstelasi-deploy-$(date +%Y%m%d%H%M%S).tar.gz"
 
 cleanup() {
   rm -f "$ARCHIVE_NAME"
+  if [ "${AGENT_STARTED:-0}" = 1 ]; then ssh-agent -k > /dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
+
+# Unlock the key once per run. When no agent holds a key, start a private one,
+# ask for the passphrase a single time and stop the agent on exit. An agent
+# you unlocked yourself is used as it is.
+if ! ssh-add -l > /dev/null 2>&1; then
+  eval "$(ssh-agent -s)" > /dev/null
+  AGENT_STARTED=1
+  key="$(ssh -G "$REMOTE_HOST" 2> /dev/null | awk '/^identityfile /{print $2; exit}')"
+  ssh-add "${key/#\~/$HOME}" || { echo "Error: could not unlock the ssh key for '${REMOTE_HOST}'." >&2; exit 1; }
+fi
 
 # Refuse to unpack a build over a WordPress install, which would leave the two
 # mixed together. Exit code 1 means the file is absent, which is what we want.
