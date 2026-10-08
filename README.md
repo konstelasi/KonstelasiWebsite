@@ -45,17 +45,24 @@ Visitors who ask their system for reduced motion get a still site with every dra
 
 ## Blog
 
-Posts are Markdown files in `src/content/blog/`, one per language under `en/` and `id/` with the same file name. The index is at `/blog/` and each post at `/blog/<slug>/`, with the Indonesian pages under `/id/blog/`. A new post needs both files before it can be published, because every page on the site exists in both languages. Each language has an RSS feed, `/blog/rss.xml` and `/id/blog/rss.xml`, which the old WordPress feed addresses redirect to.
+Posts are written in the blog admin at blog.konstelasi.co.id, whose code is `KonstelasiBlog/`, a separate repository. The index is at `/blog/` and each post at `/blog/<slug>/`, with the Indonesian pages under `/id/blog/`. Every post has both languages, because every page on the site exists in both. Each language has an RSS feed, `/blog/rss.xml` and `/id/blog/rss.xml`, which the old WordPress feed addresses redirect to.
 
-The posts will move into the blog admin in `KonstelasiBlog/`, a separate repository at blog.konstelasi.co.id. Until it is live the Markdown files are the source, and `deploy.sh` always builds from them.
+### Publishing a post
 
-To preview posts from a local copy of the admin, set `BLOG_API_URL` in a `.env` file at the root of this repository (or in the shell), and keep `php artisan serve` running in `KonstelasiBlog/`.
+1. Sign in at `https://blog.konstelasi.co.id/admin`, write the post in both languages and publish it.
+2. Run `bash deploy.sh` here. The build fetches the published posts from the blog's API and bakes them into static pages, so nothing appears on the site until this step.
+
+If the blog's API cannot be reached, the build stops and nothing is uploaded, so the site never ships without its posts. A post's slug is its address, and it locks once the post is published.
+
+### Previewing against a local admin
+
+By default the build and the dev server read the live blog. To preview posts from a local copy of the admin instead, set `BLOG_API_URL` in a `.env` file at the root of this repository (or in the shell), and keep `php artisan serve` running in `KonstelasiBlog/`.
 
 ```
 BLOG_API_URL=http://localhost:8000
 ```
 
-The dev server reads the posts once when it starts. After editing a post in the admin, type `s` and press Enter in the terminal running `npm run dev` to load them again. Remove the line to go back to the Markdown files.
+The dev server reads the posts once when it starts. After editing a post in the admin, type `s` and press Enter in the terminal running `npm run dev` to load them again. `deploy.sh` ignores this setting and always builds from the live blog.
 
 ## Kept but not published
 

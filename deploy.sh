@@ -50,10 +50,11 @@ case "$status" in
     ;;
 esac
 
-# The blog builds from the Markdown files in src/content/blog until the blog
-# admin is live, whatever a local .env says. Setting this to the admin's URL
-# is the switch to its API.
-export BLOG_API_URL=""
+# The blog pages are built from the blog admin's API, always the live one,
+# whatever a local .env says (a .env may point at a local copy of the admin).
+# If the API is unreachable the build stops, so a deploy never ships an empty
+# blog.
+export BLOG_API_URL="https://blog.konstelasi.co.id"
 
 echo "==> Building..."
 npm ci

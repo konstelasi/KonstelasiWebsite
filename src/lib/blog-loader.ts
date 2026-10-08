@@ -2,10 +2,10 @@ import type { Loader } from 'astro/loaders';
 import { langs } from '../i18n';
 
 /**
- * Loads blog posts from the blog admin's API, in place of the Markdown files
- * in `src/content/blog/`. Each post becomes two entries, `en/<slug>` and
- * `id/<slug>`, the same ids the file loader gives, so the routes and views
- * read them unchanged. `src/content.config.ts` decides which loader runs.
+ * Loads blog posts from the blog admin's API. Each post becomes two entries,
+ * `en/<slug>` and `id/<slug>`, the same ids the other collections use, so the
+ * routes and views read them like any collection. `src/content.config.ts`
+ * says which API to ask.
  *
  * Any failure stops the build, so a deploy never ships an empty blog.
  */

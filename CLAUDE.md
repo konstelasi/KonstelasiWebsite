@@ -7,7 +7,8 @@ Guidance for AI coding agents in this repository. What the site is, how it's bui
 - Astro, static output only. `npm run build` writes `dist/`, which Apache on a cPanel host serves as plain files. Nothing may need a Node runtime at request time.
 - English lives at the root, Indonesian under `/id/`. Every page exists in both languages under the same English path (`/about/` and `/id/about/`), because the hreflang tags, the language switch and the OG image names all assume it.
 - Route files in `src/pages/` are thin: each one renders a view from `src/views/` with a `lang` prop. Page copy sits in the view, as an `en` and an `id` object side by side, so a translation is checked against its source in one place. Shared UI strings are in `src/i18n/{en,id}.json`; `src/i18n/index.ts` types the Indonesian file against the English one.
-- Products, services, the policy page and the blog are content collections in `src/content/<collection>/{en,id}/<slug>.md`. The same file name in both folders is what pairs the two languages.
+- Products, services and the policy page are content collections in `src/content/<collection>/{en,id}/<slug>.md`. The same file name in both folders is what pairs the two languages.
+- The blog is a collection too, but its posts come from the blog admin's API at build time (`src/lib/blog-loader.ts`), not from files. `deploy.sh` builds from the live API and a dead API stops the build. `BLOG_API_URL` in a local `.env` points a preview at a local admin.
 - `src/templates/` and the `portfolio` collection are deliberately unrouted. Never link to them or add a route for them unless asked.
 - Old WordPress URLs are kept or redirected (301) in `public/.htaccess`. A page that moves needs a rule there.
 

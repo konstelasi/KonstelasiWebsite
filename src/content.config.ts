@@ -60,20 +60,23 @@ const services = defineCollection({
 });
 
 /**
- * Where the blog posts come from. With `BLOG_API_URL` set, in the shell or
- * in a local `.env`, they come from the blog admin's API; without it, from
- * the Markdown files. A variable set in the shell wins, even when empty, so
- * `deploy.sh` decides the source of a deploy whatever `.env` says.
+ * Where the blog posts come from: the blog admin's API, at the live blog
+ * unless `BLOG_API_URL` says otherwise, in the shell or in a local `.env`
+ * (a local copy of the admin is `http://localhost:8000`). A variable set in
+ * the shell wins, so `deploy.sh` decides the source of a deploy whatever
+ * `.env` says. If the API cannot be reached the build stops.
  */
+const LIVE_BLOG_API = 'https://blog.konstelasi.co.id';
+
 function blogApiUrl(): string {
   if (process.env.BLOG_API_URL !== undefined) return process.env.BLOG_API_URL;
-  return existsSync('.env') ? (parseEnv(readFileSync('.env', 'utf8')).BLOG_API_URL ?? '') : '';
+  const fromFile = existsSync('.env') ? parseEnv(readFileSync('.env', 'utf8')).BLOG_API_URL : undefined;
+  return fromFile ?? LIVE_BLOG_API;
 }
 
 /** Blog posts, published at `/blog/<slug>/`, newest first on `/blog/`. */
-const blogApi = blogApiUrl();
 const blog = defineCollection({
-  loader: blogApi ? blogLoader(blogApi) : glob({ pattern: '**/*.md', base: './src/content/blog' }),
+  loader: blogLoader(blogApiUrl()),
   schema: z.object({
     title: z.string(),
     description: z.string(),
