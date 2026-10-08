@@ -1,0 +1,63 @@
+name: Deploy
+
+# Builds the site and uploads it to production, the same as running
+# `bash deploy.sh` on a laptop. It can be started from the Actions tab, and the
+# blog admin starts it through the GitHub API whenever a published post
+# changes, so the public blog follows the admin without anyone deploying.
+on:
+  workflow_dispatch:
+
+# A run in progress finishes. Requests that arrive meanwhile collapse into one
+# more run, so a burst of saves costs two builds at most.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The same `konstelasi` alias deploy.sh expects on a laptop. Every value
+      # is a repository secret, because the logs of a public repository are
+      # public and GitHub hides secret values in them.
+      - name: Set up ssh
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          for name in SSH_HOST SSH_PORT SSH_USER SSH_KEY SSH_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "The repository secret for $name is missing." >&2
+              exit 1
+            fi
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          {
+            echo "Host konstelasi"
+            echo "  HostName $SSH_HOST"
+            echo "  Port $SSH_PORT"
+            echo "  User $SSH_USER"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking yes"
+          } > ~/.ssh/config
+
+      - name: Deploy
+        run: bash deploy.sh production

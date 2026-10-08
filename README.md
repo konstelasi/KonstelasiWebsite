@@ -49,10 +49,15 @@ Posts are written in the blog admin at blog.konstelasi.co.id, whose code is `Kon
 
 ### Publishing a post
 
-1. Sign in at `https://blog.konstelasi.co.id/admin`, write the post in both languages and publish it.
-2. Run `bash deploy.sh` here. The build fetches the published posts from the blog's API and bakes them into static pages, so nothing appears on the site until this step.
+Sign in at `https://blog.konstelasi.co.id/admin`, write the post in both languages and publish it. That is all. The pages are static files, so the site has to be rebuilt to show a change, and the admin does that by itself: saving, publishing, unpublishing or deleting a published post asks GitHub to run the **Deploy** workflow. It builds the site from the blog's API and uploads it, the same as `bash deploy.sh` on a laptop, and the change is live about two or three minutes later. Progress is in the repository's Actions tab, and GitHub emails the repository admins if a run fails.
 
-If the blog's API cannot be reached, the build stops and nothing is uploaded, so the site never ships without its posts. A post's slug is its address, and it locks once the post is published.
+Edits to a draft change nothing public, so they start no rebuild. Several saves in a row cost at most two builds, because a run that is waiting replaces the one before it.
+
+You can still deploy by hand with `bash deploy.sh`, or press Run workflow on the Deploy workflow in the Actions tab. If the blog's API cannot be reached, the build stops and nothing is uploaded, so the site never ships without its posts. A post's slug is its address, and it locks once the post is published.
+
+### Setting the automatic rebuild up
+
+The workflow is `.github/workflows/deploy.yml`. It needs five repository secrets (`DEPLOY_SSH_HOST`, `DEPLOY_SSH_PORT`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`), which `scripts/setup-ci-deploy.sh` creates with a new SSH key used only by GitHub. The blog's host `.env` needs `GITHUB_DISPATCH_TOKEN`, a fine-grained GitHub token that has only Actions read and write access on this repository. Both are one time steps.
 
 ### Previewing against a local admin
 
