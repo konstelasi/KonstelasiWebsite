@@ -1,6 +1,15 @@
 # Apache rules for the static site on the cPanel host. Astro copies this file
 # into dist/ unchanged.
 
+# www.konstelasi.co.id is the same site, so it sends visitors to the address
+# without www, keeping the path and query string. Cloudflare already moves
+# http to https, so the target is always https.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^www\.konstelasi\.co\.id$ [NC]
+  RewriteRule ^ https://konstelasi.co.id%{REQUEST_URI} [R=301,L]
+</IfModule>
+
 # Missing pages get the 404 page in the visitor's language.
 ErrorDocument 404 /404.html
 <If "%{REQUEST_URI} =~ m#^/id/#">

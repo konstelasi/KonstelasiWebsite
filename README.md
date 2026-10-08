@@ -81,6 +81,8 @@ The **portfolio** has a template, `src/templates/PortfolioPage.astro`, and a `po
 
 The old WordPress site used the same paths for most pages, so they carry over unchanged. The ones that moved are redirected with a 301 in `public/.htaccess`, which Apache reads on the host.
 
+`www.konstelasi.co.id` redirects to `konstelasi.co.id` with a 301 and keeps the path, so search engines see one address for every page.
+
 The blog kept its `/blog/` address and its post slugs. WordPress put the date in a post's URL, such as `/2025/12/24/<slug>/`, so each old post has a rule that sends it to `/blog/<slug>/`, and `/category/blog/` goes to `/blog/`.
 
 ## Deploying
