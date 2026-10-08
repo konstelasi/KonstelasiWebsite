@@ -53,7 +53,7 @@ Sign in at `https://blog.konstelasi.co.id/admin`, write the post in both languag
 
 Edits to a draft change nothing public, so they start no rebuild. Several saves in a row cost at most two builds, because a run that is waiting replaces the one before it.
 
-You can still deploy by hand with `bash deploy.sh`, or press Run workflow on the Deploy workflow in the Actions tab. If the blog's API cannot be reached, the build stops and nothing is uploaded, so the site never ships without its posts. A post's slug is its address, and it locks once the post is published.
+A push to `main` deploys the same way, so pushing code is the one press and needs no SSH passphrase. A push that changes only Markdown files deploys nothing. Work that is not ready for the live site belongs on another branch until it is merged. You can still deploy by hand with `bash deploy.sh`, or press Run workflow on the Deploy workflow in the Actions tab. If the blog's API cannot be reached, the build stops and nothing is uploaded, so the site never ships without its posts. A post's slug is its address, and it locks once the post is published.
 
 ### Setting the automatic rebuild up
 

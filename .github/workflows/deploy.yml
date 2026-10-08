@@ -1,10 +1,18 @@
 name: Deploy
 
 # Builds the site and uploads it to production, the same as running
-# `bash deploy.sh` on a laptop. It can be started from the Actions tab, and the
-# blog admin starts it through the GitHub API whenever a published post
-# changes, so the public blog follows the admin without anyone deploying.
+# `bash deploy.sh` on a laptop. It starts in three ways. A push to main
+# deploys, so pushing is the one press. The blog admin starts it through the
+# GitHub API whenever a published post changes. And it can be started by hand
+# from the Actions tab.
 on:
+  push:
+    branches: [main]
+    # A change to documentation alone changes nothing on the site, so it does
+    # not deploy. A push that also touches code still does.
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 # A run in progress finishes. Requests that arrive meanwhile collapse into one
