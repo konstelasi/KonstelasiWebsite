@@ -98,15 +98,19 @@ echo "==> Uploading to ${REMOTE_HOST}:~/${ARCHIVE_NAME} ..."
 scp "$ARCHIVE_NAME" "${REMOTE_HOST}:${ARCHIVE_NAME}"
 
 echo "==> Extracting into ~/${REMOTE_DIR} ..."
-# _astro/ is wiped first. Every file in it has a content hash in its name, so
-# a plain overwrite would keep every earlier build's files forever. Anything
-# else in the folder (cgi-bin, .well-known and other cPanel files) is left
-# alone, and the archive overwrites only what the build produces.
+# Four folders are wiped first, because the build writes every file in them
+# and a plain overwrite would keep what it no longer writes. _astro/ holds
+# files with a content hash in their name, so every earlier build's files would
+# stay forever. blog/ and id/blog/ hold one page per post, and og/ one social
+# image per page, so a post set back to draft or deleted in the blog admin
+# would stay online as an old page. Anything else in the folder (cgi-bin,
+# .well-known and other cPanel files) is left alone, and the archive overwrites
+# only what the build produces.
 ssh "$REMOTE_HOST" bash -s <<EOF
 set -euo pipefail
 trap 'rm -f "${ARCHIVE_NAME}"' EXIT
 mkdir -p "${REMOTE_DIR}"
-rm -rf "${REMOTE_DIR}/_astro"
+rm -rf "${REMOTE_DIR}/_astro" "${REMOTE_DIR}/blog" "${REMOTE_DIR}/id/blog" "${REMOTE_DIR}/og"
 tar -xzf "${ARCHIVE_NAME}" -C "${REMOTE_DIR}"
 EOF
 

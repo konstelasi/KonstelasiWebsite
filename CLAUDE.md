@@ -86,6 +86,7 @@ Every human-read text here (page copy, content files, code comments, README) fol
 - `motion-ready` is only set with motion on. Don't key a reduced-motion final state on it.
 - Expected build warnings: the empty `portfolio` collection and the missing `src/icons/` folder. Anything else is new.
 - `KonstelasiBlog/` is a separate git repo nested here on purpose: the blog's admin and API (Laravel and Filament, at blog.konstelasi.co.id). It has its own CLAUDE.md. Never stage its files in this repo; `tsconfig.json` excludes it.
+- `deploy.sh` deletes `_astro/`, `blog/`, `id/blog/` and `og/` on the host before it unpacks the build. That is what takes an unpublished or deleted blog post offline, since the build no longer writes its page. Never keep hand-placed files in those folders, and if the build starts writing blog pages or social images somewhere else, add that folder to the same `rm -rf` line.
 - `git config core.autocrlf` is on for this machine, so `.gitattributes` forces LF. `deploy.sh` breaks on the host with CRLF.
 
 ## Commits

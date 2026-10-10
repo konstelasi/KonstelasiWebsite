@@ -97,3 +97,5 @@ bash deploy.sh staging  # the staging subdomain, kept out of search engines
 The script unlocks your SSH key itself, asking for the passphrase once per run, so a fresh terminal needs nothing else. If you have no `konstelasi` alias, put `export DEPLOY_HOST=<your alias>` in `~/.bashrc` once. On Windows, run it from Git Bash, because `npm run deploy` may find the WSL `bash.exe` first.
 
 Production deploys into `public_html`, because the main domain's document root is fixed there. `deploy.sh` refuses to run while a WordPress `wp-config.php` is still in the target folder, so a build can never be unpacked over an old install.
+
+Before unpacking, the script clears `_astro/`, `blog/`, `id/blog/` and `og/` in the target folder, because the build writes every file in them. That is how a post that is set back to draft or deleted in the blog admin disappears from the site, instead of staying online as an old page. Anything else in the folder is left alone, so keep hand-placed files out of those four.
