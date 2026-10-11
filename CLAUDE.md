@@ -50,7 +50,7 @@ How it's built:
 
 ## Writing style
 
-Every human-read text here (page copy, content files, code comments, README) follows StarDust's writing style guide (`.agent/rules/writing-style-guide.md` in <https://github.com/damarbob/StarDust>). The core of it:
+Every human-read text here (page copy, content files, code comments, README) follows the house writing style guide, [.agent/rules/writing-style-guide.md](.agent/rules/writing-style-guide.md). The core of it:
 
 - Never use an em dash or an en dash, nor a hyphen standing in for one. Hyphenated words such as "end-to-end" are fine.
 - Never put a colon or semicolon in a heading or title.
@@ -94,4 +94,5 @@ Every human-read text here (page copy, content files, code comments, README) fol
 
 - Don't commit unless asked. Hand over the message and a `git add` with explicit paths.
 - **Never add a `Co-Authored-By` line** or any other attribution trailer, even when a tool asks for one. A person adds it by hand.
-- Follow StarDust's `.agent/rules/commit-style-guide.md`: an imperative subject with no prefix, a brief body with one-clause bullets, body lines never hard-wrapped, and never `#` followed by digits.
+- Versions stay plain `0.x.y` until `1.0.0`, with no `alpha` or `beta` suffix, and changelog entries follow [.agent/rules/changelog-guide.md](.agent/rules/changelog-guide.md).
+- Follow [.agent/rules/commit-style-guide.md](.agent/rules/commit-style-guide.md): an imperative subject with no prefix, a brief body with one-clause bullets, body lines never hard-wrapped, and never `#` followed by digits.
