@@ -3,23 +3,31 @@ import Base from '../layouts/Base.astro';
 import { type Lang, localePath, formatDate } from '../i18n';
 import { posts, slugOf } from '../lib/content';
 import { staticPages } from '../lib/pages';
+import { tagsIn, tagPath, tagMeta, type Tag } from '../lib/tags';
 
 interface Props {
   lang: Lang;
+  /** Set on a tag page, which lists only the posts that carry it. */
+  tag?: Tag;
 }
 
-const { lang } = Astro.props;
-const meta = staticPages['/blog/'][lang];
-const list = await posts(lang);
+const { lang, tag } = Astro.props;
+const meta = tag ? tagMeta(lang, tag) : staticPages['/blog/'][lang];
+const list = tag ? tag.posts : await posts(lang);
+const topics = await tagsIn(lang);
 
 const copy = {
   en: {
     title: 'What we ship, and why',
     lede: 'Releases, the decisions behind them, and what we learned on the way. Written by the people who build the software.',
+    all: 'All posts',
+    topics: 'Topics',
   },
   id: {
     title: 'Apa yang kami rilis, dan alasannya',
     lede: 'Rilis, keputusan di baliknya, dan pelajaran yang kami dapat di sepanjang jalan. Ditulis langsung oleh orang-orang yang membangun software-nya.',
+    all: 'Semua tulisan',
+    topics: 'Topik',
   },
 }[lang];
 ---
@@ -27,8 +35,18 @@ const copy = {
 <Base lang={lang} title={meta.title} description={meta.description}>
   <div class="blog">
     <header>
-      <h1 data-split="words">{copy.title}</h1>
-      <p>{copy.lede}</p>
+      <h1 data-split="words">{tag ? tag.name : copy.title}</h1>
+      <p>{tag ? meta.description : copy.lede}</p>
+      {topics.length > 0 && (
+        <nav class="topics" aria-label={copy.topics}>
+          <a href={localePath(lang, '/blog/')} aria-current={tag ? undefined : 'page'}>{copy.all}</a>
+          {topics.map((t) => (
+            <a href={localePath(lang, tagPath(t.slug))} aria-current={tag?.slug === t.slug ? 'page' : undefined}>
+              {t.name}<span>{t.posts.length}</span>
+            </a>
+          ))}
+        </nav>
+      )}
     </header>
 
     <ol class="timeline">
@@ -76,6 +94,34 @@ const copy = {
   header p {
     max-width: 34rem;
     color: var(--text-dim);
+  }
+
+  /* The topics are plain links in a wrapping row. Violet marks the one
+     being read, as it marks any active state. */
+  .topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .topics a {
+    padding-bottom: 0.15rem;
+    border-bottom: 1px solid transparent;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+  }
+  .topics a:hover { color: var(--text); }
+  .topics a[aria-current='page'] {
+    color: var(--brand);
+    border-bottom-color: var(--brand);
+  }
+  .topics span {
+    margin-left: 0.4em;
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
   }
 
   .timeline {
@@ -185,6 +231,6 @@ const copy = {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .star { transition: none; }
+    .star, .topics a { transition: none; }
   }
 </style>

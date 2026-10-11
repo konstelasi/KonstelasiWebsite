@@ -82,6 +82,8 @@ const blog = defineCollection({
     description: z.string(),
     published: z.coerce.date(),
     author: z.string(),
+    /** Shared by both languages, each entry holding the name in its own. */
+    tags: z.array(z.object({ slug: z.string(), name: z.string() })).default([]),
   }),
 });
 

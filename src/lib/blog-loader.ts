@@ -16,10 +16,18 @@ interface ApiText {
   body: string;
 }
 
+interface ApiTag {
+  slug: string;
+  en: string;
+  id: string;
+}
+
 interface ApiPost {
   slug: string;
   published_at: string;
   author: string;
+  /** Missing from an API that predates tags, which reads as no tags. */
+  tags?: ApiTag[];
   en: ApiText;
   id: ApiText;
 }
@@ -47,16 +55,18 @@ export function blogLoader(apiUrl: string): Loader {
           const text = post[lang];
           if (!text?.title || !text.body) throw new Error(`post "${post.slug}" has no ${lang} text`);
           const id = `${lang}/${post.slug}`;
+          // Tags are shared by both languages. Each entry keeps the name in its own.
+          const tags = (post.tags ?? []).map((tag) => ({ slug: tag.slug, name: tag[lang] }));
           const data = await parseData({
             id,
-            data: { title: text.title, description: text.description, published: post.published_at, author: post.author },
+            data: { title: text.title, description: text.description, published: post.published_at, author: post.author, tags },
           });
           store.set({
             id,
             data,
             body: text.body,
             rendered: await renderMarkdown(text.body),
-            digest: generateDigest({ ...text, published: post.published_at, author: post.author }),
+            digest: generateDigest({ ...text, published: post.published_at, author: post.author, tags }),
           });
         }
       }

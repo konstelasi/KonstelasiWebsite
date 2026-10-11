@@ -18,7 +18,7 @@ interface Props {
   bare?: boolean;
   noindex?: boolean;
   /** Set for article pages, so link previews describe them as articles. */
-  article?: { published: Date };
+  article?: { published: Date; tags?: string[] };
   /** `quiet` dims the star field behind long reading, such as the policy. */
   sky?: 'full' | 'quiet';
 }
@@ -87,6 +87,7 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
     <meta property="og:locale" content={ogLocale[lang]} />
     <meta property="og:locale:alternate" content={ogLocale[otherLang(lang)]} />
     {article && <meta property="article:published_time" content={article.published.toISOString()} />}
+    {article?.tags?.map((name) => <meta property="article:tag" content={name} />)}
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="sitemap" href="/sitemap-index.xml" />

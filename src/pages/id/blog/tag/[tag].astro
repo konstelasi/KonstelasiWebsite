@@ -1,0 +1,12 @@
+---
+import Blog from '../../../../views/Blog.astro';
+import { tagsIn } from '../../../../lib/tags';
+
+export async function getStaticPaths() {
+  return (await tagsIn('id')).map((tag) => ({ params: { tag: tag.slug }, props: { tag } }));
+}
+
+const { tag } = Astro.props;
+---
+
+<Blog lang="id" tag={tag} />

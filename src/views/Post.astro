@@ -4,6 +4,7 @@ import { render, type CollectionEntry } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { type Lang, localePath, formatDate } from '../i18n';
 import { posts, slugOf } from '../lib/content';
+import { tagsIn, tagPath } from '../lib/tags';
 
 interface Props {
   lang: Lang;
@@ -25,9 +26,13 @@ const all = await posts(lang);
 const at = all.findIndex((p) => p.id === entry.id);
 const next = all.length > 1 ? all[(at + 1) % all.length] : undefined;
 
+// Only a tag with a page of its own is a link. The others are plain text.
+const withPage = new Set((await tagsIn(lang)).map((t) => t.slug));
+
 const copy = {
   en: {
     all: 'All posts',
+    topics: 'Topics',
     published: 'Published',
     author: 'Written by',
     reading: 'Reading time',
@@ -36,6 +41,7 @@ const copy = {
   },
   id: {
     all: 'Semua tulisan',
+    topics: 'Topik',
     published: 'Terbit',
     author: 'Penulis',
     reading: 'Waktu baca',
@@ -45,7 +51,7 @@ const copy = {
 }[lang];
 ---
 
-<Base lang={lang} title={post.title} description={post.description} article={{ published: post.published }} sky="quiet">
+<Base lang={lang} title={post.title} description={post.description} article={{ published: post.published, tags: post.tags.map((t) => t.name) }} sky="quiet">
   <article>
     <header>
       <a class="back" href={localePath(lang, '/blog/')}>
@@ -60,6 +66,18 @@ const copy = {
         <div><dt>{copy.published}</dt><dd><time datetime={post.published.toISOString().slice(0, 10)}>{formatDate(lang, post.published)}</time></dd></div>
         <div><dt>{copy.author}</dt><dd>{post.author}</dd></div>
         <div><dt>{copy.reading}</dt><dd>{copy.minutes}</dd></div>
+        {post.tags.length > 0 && (
+          <div>
+            <dt>{copy.topics}</dt>
+            <dd>
+              <ul class="topics">
+                {post.tags.map((t) => (
+                  <li>{withPage.has(t.slug) ? <a href={localePath(lang, tagPath(t.slug))}>{t.name}</a> : t.name}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        )}
       </dl>
 
       <div class="prose">
@@ -136,6 +154,19 @@ const copy = {
   }
   .meta dt { color: var(--text-faint); }
   .meta dd { color: var(--text); }
+  .topics {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1rem;
+  }
+  .topics a {
+    text-decoration: underline;
+    text-decoration-color: var(--border-bright);
+    text-underline-offset: 0.2em;
+    transition: color 0.2s var(--ease), text-decoration-color 0.2s var(--ease);
+  }
+  .topics a:hover { color: var(--brand); text-decoration-color: currentColor; }
 
   .next {
     display: grid;
@@ -172,6 +203,6 @@ const copy = {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .back, .next a { transition: none; }
+    .back, .next a, .topics a { transition: none; }
   }
 </style>

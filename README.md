@@ -47,6 +47,8 @@ Visitors who ask their system for reduced motion get a still site with every dra
 
 Posts are written in the blog admin at blog.konstelasi.co.id, whose code is `KonstelasiBlog/`, a separate repository. The index is at `/blog/` and each post at `/blog/<slug>/`, with the Indonesian pages under `/id/blog/`. Every post has both languages, because every page on the site exists in both. Each language has an RSS feed, `/blog/rss.xml` and `/id/blog/rss.xml`, which the old WordPress feed addresses redirect to.
 
+Posts carry tags, set in the blog admin. A tag is shared by both languages and has a name in each. A tag that two or more published posts carry gets a page at `/blog/tag/<slug>/` and `/id/blog/tag/<slug>/`, and the topics row under the blog heading links to those pages. A tag on a single post shows on that post as plain text with no page, because a page with one post is thin. The rule is `MIN_TAG_POSTS` in `src/lib/tags.ts`. Tags also go out as `article:tag` in a post's link preview data and as `<category>` in the RSS feeds.
+
 ### Publishing a post
 
 Sign in at `https://blog.konstelasi.co.id/admin`, write the post in both languages and publish it. That is all. The pages are static files, so the site has to be rebuilt to show a change, and the admin does that by itself: saving, publishing, unpublishing or deleting a published post asks GitHub to run the **Deploy** workflow. It builds the site from the blog's API and uploads it, the same as `bash deploy.sh` on a laptop, and the change is live about two or three minutes later. Progress is in the repository's Actions tab, and GitHub emails the repository admins if a run fails.

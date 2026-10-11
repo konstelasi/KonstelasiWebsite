@@ -2,6 +2,7 @@ import { type Lang, langs } from '../i18n';
 import { entriesIn, slugOf } from './content';
 import { staticPages } from './pages';
 import { ogName } from './og';
+import { tagPath, tagsIn, tagMeta } from './tags';
 
 export interface OgPage {
   lang: Lang;
@@ -29,6 +30,10 @@ export async function ogPages(): Promise<OgPage[]> {
     }
     for (const b of await entriesIn('blog', lang)) {
       pages.push({ lang, name: ogName(`/blog/${slugOf(b)}/`), title: b.data.title, subtitle: b.data.description });
+    }
+    for (const tag of await tagsIn(lang)) {
+      const meta = tagMeta(lang, tag);
+      pages.push({ lang, name: ogName(tagPath(tag.slug)), title: meta.title, subtitle: meta.description });
     }
     for (const l of await entriesIn('legal', lang)) {
       pages.push({ lang, name: ogName(`/${slugOf(l)}/`), title: l.data.title, subtitle: l.data.description });

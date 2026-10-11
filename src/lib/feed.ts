@@ -17,12 +17,13 @@ export async function blogFeed(lang: Lang): Promise<Response> {
   const index = `${SITE}${localePath(lang, '/blog/')}`;
   const items = (await posts(lang)).map((post) => {
     const link = `${SITE}${localePath(lang, `/blog/${slugOf(post)}/`)}`;
+    const categories = post.data.tags.map((tag) => `\n      <category>${escape(tag.name)}</category>`).join('');
     return `    <item>
       <title>${escape(post.data.title)}</title>
       <link>${link}</link>
       <guid isPermaLink="true">${link}</guid>
       <pubDate>${post.data.published.toUTCString()}</pubDate>
-      <description>${escape(post.data.description)}</description>
+      <description>${escape(post.data.description)}</description>${categories}
     </item>`;
   });
 
