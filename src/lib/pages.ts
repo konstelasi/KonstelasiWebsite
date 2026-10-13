@@ -13,11 +13,11 @@ export interface PageMeta {
 export const staticPages: Record<string, Record<Lang, PageMeta>> = {
   '/': {
     en: {
-      title: 'Konstelasi, software and AI from Yogyakarta',
+      title: 'Konstelasi | Crafting the future',
       description: 'We build custom web and mobile apps, automate the work between your tools, and set up private AI that answers from your own data.',
     },
     id: {
-      title: 'Konstelasi, software dan AI dari Yogyakarta',
+      title: 'Konstelasi | Crafting the future',
       description: 'Kami membangun aplikasi web dan mobile custom, mengotomatiskan pekerjaan di antara alat-alat Anda, dan memasang AI privat yang menjawab dari data Anda sendiri.',
     },
   },
