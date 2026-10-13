@@ -13,8 +13,9 @@
  * A page can ask the sky to assemble into a shape (`assemble`) fitted into an
  * element, and to let it go again. `form`, from 0 (sky) to 1 (shape), is a
  * plain number, so GSAP can tween it or scrub it with the scroll. The stars
- * that form a shape are the ones on screen, plus the nearest from beyond the
- * edge, and they go back to their real places afterwards. The Moon never
+ * that form a shape are every constellation star and a share of the rest
+ * from across the sky, and they fly back to their real places afterwards,
+ * so the constellations form out of the breaking shape. The Moon never
  * joins a shape.
  *
  * Positions are worked out on the CPU in CSS pixels each frame and uploaded
@@ -790,20 +791,16 @@ function create(cat: Catalogue): Scene | null {
       outlineCount = n;
       outlineGeometry.attributes.aKey.needsUpdate = true;
 
-      // Which stars form it: the bright ones on screen first, then the ones
-      // nearest the shape from beyond the edge. A page may call this before
-      // the first frame, so place the sky now.
-      tilt(window.scrollY);
-      placeSky(Math.sin(view.alt * RAD), Math.cos(view.alt * RAD));
-      const r = typeof where === 'function' ? where() : where.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const { W, H } = view;
-      const order = Array.from({ length: N }, (_, i) => i);
-      const onScreen = (i: number): boolean => star[i] >= 0 && ext[i] > 0 && skyPx[i] > 0 && skyPx[i] < W && skyPy[i] > 0 && skyPy[i] < H;
-      const rankOf = (i: number): number => (onScreen(i) ? -10 - bright[i] : Math.hypot(skyPx[i] - cx, skyPy[i] - cy));
-      const ranks = order.map(rankOf);
-      order.sort((a, b) => ranks[a] - ranks[b]);
+      // Which stars form it: every constellation star, so the figures form
+      // out of the shape as it breaks apart, then a random share of the
+      // rest, spread over the whole sky. Spread matters: a shape that took
+      // every star on screen would leave the sky that scrolls into view
+      // empty while it holds.
+      const figureFirst = Array.from({ length: N }, (_, i) => i)
+        .filter((i) => star[i] >= 0)
+        .map((i) => ({ i, rank: (cat.figuresOf.has(star[i]) ? 0 : 1) + Math.random() }));
+      const spare = Array.from({ length: N }, (_, i) => i).filter((i) => star[i] < 0);
+      const order = [...figureFirst.sort((a, b) => a.rank - b.rank).map((o) => o.i), ...spare];
       pointOf.fill(-1);
       for (let j = 0; j < Math.min(next.count, N); j++) pointOf[order[j]] = j;
     },
@@ -1050,7 +1047,13 @@ function create(cat: Catalogue): Scene | null {
         const bx = ax + (position[pb * 3] - ax) * p;
         const by = ay + (position[pb * 3 + 1] - ay) * p;
         const fade = Math.min(edge(ax, W), edge(bx, W), edge(ay, H), edge(by, H));
-        const a01 = c.alpha * fade * Math.min(ext[pa], ext[pb]) * (1 - Math.max(joined[pa], joined[pb]));
+        // A line only shows while its stars are about as far apart as their
+        // real places, so stars still flying home from a shape don't drag it
+        // into a long stroke. It comes in as they land.
+        const rest = Math.hypot(skyPx[pa] - skyPx[pb], skyPy[pa] - skyPy[pb]) || 1;
+        const now01 = Math.hypot(position[pb * 3] - ax, position[pb * 3 + 1] - ay);
+        const stretch = clamp01((rest * 1.35 - now01) / (rest * 0.3)) * clamp01((now01 - rest * 0.65) / (rest * 0.3));
+        const a01 = c.alpha * fade * stretch * Math.min(ext[pa], ext[pb]) * (1 - Math.max(joined[pa], joined[pb]));
         linePos[seg * 6] = ax;
         linePos[seg * 6 + 1] = ay;
         linePos[seg * 6 + 3] = bx;
