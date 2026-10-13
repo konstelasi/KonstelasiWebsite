@@ -20,7 +20,8 @@
  * Positions are worked out on the CPU in CSS pixels each frame and uploaded
  * as one buffer. With 1,400 stars that's cheap, and it keeps the shader
  * trivial. The scene only starts with WebGL and without reduced motion, and
- * it stops drawing while the tab is hidden.
+ * it stops drawing while the tab is hidden. `sky/clock.ts` lists the URL
+ * switches that take control of time for debugging.
  */
 import { Renderer, Geometry, Program, Mesh, Transform } from 'ogl';
 import { gsap, motionOn, finePointer } from './core';
@@ -28,7 +29,7 @@ import { fitRect, type Shape } from './shapes';
 import starsUrl from './sky/stars.bin?url';
 import skyUrl from './sky/sky.json?url';
 import { decode, type Catalogue, type SkyData } from './sky/catalogue';
-import { RAD, horizonAlt, sidereal, toLocal } from './sky/astro';
+import { RAD, altAz, horizonAlt, sidereal, toLocal } from './sky/astro';
 import { moon as moonAt, type Moon } from './sky/ephemeris';
 import { activeShower, type Shower } from './sky/showers';
 import { clock, skyNow } from './sky/clock';
@@ -221,6 +222,29 @@ export interface Scene {
   assemble(shape: Shape, anchor: Anchor, fit?: number): void;
   /** Particle count, for sizing shapes. */
   readonly count: number;
+}
+
+/** What the debug panel (`sky/debug.ts`) reads and controls. */
+export interface SkyHooks {
+  state(): {
+    camAlt: number;
+    ppd: number;
+    moon: { alt: number; az: number; lit: number; phase: string; inView: boolean; why: string } | null;
+    sunAlt: number;
+    shower: { name: string; radiantAlt: number } | null;
+    pool: { bound: number; spare: number; rebinds: number };
+    figures: Array<{ name: string; score: number; frac: number }>;
+    frameMs: number;
+  };
+  /** Screen position of an altitude and azimuth, or null when behind the camera. */
+  project(alt: number, az: number): [number, number] | null;
+  /** Whether the Moon would be in view at `ms`, with the current tilt. */
+  moonInView(ms: number): boolean;
+  fireMeteor(): void;
+  sendSatellite(): void;
+  setShowAll(on: boolean): void;
+  /** Call after moving the clock, so the sky catches up at once. */
+  refresh(): void;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -1192,6 +1216,52 @@ function create(cat: Catalogue): Scene | null {
   gsap.to(scene, { presence: quiet ? 0.35 : 1, duration: 1.6, ease: 'power2.out' });
   startSkyLine(() => ({ moon: moonState, shower }));
 
+  if (clock.debug) {
+    const hooks: SkyHooks = {
+      state() {
+        const sunAlt = moonState ? altAz(moonState.sunDir).alt : 0;
+        const mo = moonState ? altAz(moonState.dir) : null;
+        return {
+          camAlt: view.alt,
+          ppd: view.ppd,
+          moon: moonState && mo ? { ...mo, lit: moonState.lit, phase: moonState.phase, inView: moonInViewNow, why: moonWhy } : null,
+          sunAlt,
+          shower: shower && radiant ? { name: shower.en, radiantAlt: altAz(radiant).alt } : null,
+          pool: { bound: star.filter((s) => s >= 0).length, spare: star.filter((s) => s < 0).length, rebinds: rebindLog.length },
+          figures: chosen.filter((c) => !c.leaving).map((c) => ({ name: cat.figures[c.k].name, score: c.score, frac: c.frac })),
+          frameMs,
+        };
+      },
+      project(alt, az) {
+        const a = alt * RAD;
+        const z = az * RAD;
+        const p: [number, number] = [0, 0];
+        const ok = toScreen(Math.cos(a) * Math.sin(z), Math.cos(a) * Math.cos(z), Math.sin(a), Math.sin(view.alt * RAD), Math.cos(view.alt * RAD), p);
+        return ok ? p : null;
+      },
+      moonInView(ms) {
+        const m = moonAt(ms).dir;
+        const p: [number, number] = [0, 0];
+        if (m[2] < 0.02 || !toScreen(m[0], m[1], m[2], Math.sin(view.alt * RAD), Math.cos(view.alt * RAD), p)) return false;
+        return p[0] > 0 && p[0] < view.W && p[1] > 0 && p[1] < view.H;
+      },
+      fireMeteor: () => fireMeteor(lastTime),
+      sendSatellite: () => sendSatellite(lastTime),
+      setShowAll(on) {
+        showAll = on;
+        for (const c of chosen) c.leaving = true;
+        cooldown.clear();
+        pickFigures(lastTime);
+      },
+      refresh() {
+        bind(skyNow());
+        for (const c of chosen) c.leaving = true;
+        cooldown.clear();
+        lastPick = -10;
+      },
+    };
+    void import('./sky/debug').then((m) => m.openDebug(hooks));
+  }
   return scene;
 }
 
