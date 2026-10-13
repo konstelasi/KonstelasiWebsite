@@ -241,12 +241,12 @@ main,
   left: 16px;
   bottom: 16px;
   z-index: 5;
-  max-width: min(34rem, calc(100vw - 32px));
+  max-width: min(50rem, calc(100vw - 32px));
   margin: 0;
   padding: 0.3rem 0.55rem;
   font: 400 0.7rem/1.45 var(--mono);
   color: var(--text-dim);
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
   border-radius: var(--radius-sm);
   pointer-events: none;
 }

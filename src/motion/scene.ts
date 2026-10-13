@@ -635,6 +635,9 @@ function create(cat: Catalogue): Scene | null {
     score: number;
     frac: number;
     label: HTMLSpanElement;
+    /** 1 while the label is clear of page text, eased toward 0 when it isn't. */
+    clear: number;
+    blocked: boolean;
   }
   const chosen: Chosen[] = [];
   const cooldown = new Map<number, number>();
@@ -724,7 +727,7 @@ function create(cat: Catalogue): Scene | null {
         old.leaving = false;
         old.score = c.score;
       } else {
-        chosen.push({ k: c.k, draw: showAll ? 1 : 0, alpha: 1, leaving: false, score: c.score, frac: c.frac, label: label(c.k) });
+        chosen.push({ k: c.k, draw: showAll ? 1 : 0, alpha: 1, leaving: false, score: c.score, frac: c.frac, label: label(c.k), clear: 0, blocked: true });
       }
       active++;
     }
@@ -860,6 +863,18 @@ function create(cat: Catalogue): Scene | null {
 
   const ease = (t: number): number => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3));
 
+  // Whether page text sits at a point or either side of it. The sky's own
+  // layers take no pointer events, so the hit test sees the page above them.
+  const TEXTY = 'h1,h2,h3,h4,h5,h6,p,li,a,button,summary,label,figcaption,blockquote,dt,dd,pre,code,table,figure,svg,img,input,textarea,select,details';
+  function overText(x: number, y: number, half: number): boolean {
+    for (const px of [x - half, x, x + half]) {
+      const el = document.elementFromPoint(px, y);
+      if (el && el.closest(TEXTY)) return true;
+    }
+    return false;
+  }
+
+  let frameCount = 0;
   let lastTime = 0;
   let lastSky = -10;
   let lastBindTime = 0;
@@ -1027,9 +1042,11 @@ function create(cat: Catalogue): Scene | null {
     // edge and at the horizon.
     const edge = (v: number, extent: number): number => clamp01(Math.min(v + 40, extent + 40 - v) / 160);
     let seg = 0;
+    const checkText = frameCount++ % 6 === 0;
     for (const c of chosen) {
       const list = ordered[c.k];
       const n = list.length;
+      let shown = 0;
       let lx0 = Infinity;
       let lx1 = -Infinity;
       let ly1 = -Infinity;
@@ -1060,13 +1077,18 @@ function create(cat: Catalogue): Scene | null {
         linePos[seg * 6 + 4] = by;
         lineAlpha[seg * 2] = a01;
         lineAlpha[seg * 2 + 1] = a01;
+        shown = Math.max(shown, a01 / Math.max(0.001, c.alpha));
         seg++;
       }
-      // The name sits under the figure, once most of it is drawn.
+      // The name sits under the figure, once most of it is drawn, and only
+      // as far as its lines show. It steps out of the way of page text,
+      // which it would otherwise sit on, since the sky runs behind it.
       if (lx0 < Infinity) {
         const x = Math.min(W - 48, Math.max(48, (lx0 + lx1) / 2));
         const y = Math.min(H - 48, Math.max(16, ly1 + 16));
-        const o = c.alpha * clamp01(c.draw * 2 - 1) * scene.presence * (1 - scene.form) * 0.9;
+        if (checkText) c.blocked = overText(x, y + 5, c.label.offsetWidth / 2 + 6);
+        c.clear += ((c.blocked ? 0 : 1) - c.clear) * 0.15;
+        const o = c.alpha * clamp01(c.draw * 2 - 1) * shown * c.clear * scene.presence * 0.9;
         c.label.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translateX(-50%)`;
         c.label.style.opacity = o.toFixed(3);
       }
