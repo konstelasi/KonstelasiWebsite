@@ -1,13 +1,21 @@
 /**
  * The living constellation: one WebGL canvas fixed behind every page.
  *
- * At rest it is a sky of stars at three depths, drifting slowly, joined by
- * faint lines, moving with the scroll at different speeds and leaning a
- * little toward the pointer. On dark, the constellation stars and a few
- * others glow. A page can ask it to assemble into a shape
- * (`assemble`) fitted into an element, and to let it go again. `form`, from
- * 0 (sky) to 1 (shape), is a plain number, so GSAP can tween it or scrub it
- * with the scroll.
+ * At rest it is the real sky over Yogyakarta at this moment, facing south.
+ * Every star is a real one from the catalogue in `sky/`, placed by the clock,
+ * so the sky turns with the Earth. Scrolling tilts the view, from near the
+ * zenith at the top of a page down to the southern horizon. Two or three
+ * constellations in view are drawn in, line by line, with their names. The
+ * Moon sits at its real place and phase. Satellites and shooting stars cross
+ * in front, and being nearer, they move more with the scroll and the pointer
+ * than the stars do.
+ *
+ * A page can ask the sky to assemble into a shape (`assemble`) fitted into an
+ * element, and to let it go again. `form`, from 0 (sky) to 1 (shape), is a
+ * plain number, so GSAP can tween it or scrub it with the scroll. The stars
+ * that form a shape are the ones on screen, plus the nearest from beyond the
+ * edge, and they go back to their real places afterwards. The Moon never
+ * joins a shape.
  *
  * Positions are worked out on the CPU in CSS pixels each frame and uploaded
  * as one buffer. With 1,400 stars that's cheap, and it keeps the shader
@@ -17,7 +25,14 @@
 import { Renderer, Geometry, Program, Mesh, Transform } from 'ogl';
 import { gsap, motionOn, finePointer } from './core';
 import { fitRect, type Shape } from './shapes';
-import { constellations } from './constellations';
+import starsUrl from './sky/stars.bin?url';
+import skyUrl from './sky/sky.json?url';
+import { decode, type Catalogue, type SkyData } from './sky/catalogue';
+import { RAD, horizonAlt, sidereal, toLocal } from './sky/astro';
+import { moon as moonAt, type Moon } from './sky/ephemeris';
+import { activeShower, type Shower } from './sky/showers';
+import { clock, skyNow } from './sky/clock';
+import { startSkyLine } from './sky/line';
 
 const VERTEX = /* glsl */ `
 attribute vec3 position;
@@ -62,7 +77,7 @@ void main() {
 }`;
 
 // Lines carry their own alpha per vertex, worked out on the CPU, so a
-// constellation fades as a whole and never stretches across the screen.
+// constellation fades as a whole and a shooting star's tail fades to nothing.
 const LINE_VERTEX = /* glsl */ `
 attribute vec3 position;
 attribute float aAlpha;
@@ -137,8 +152,58 @@ void main() {
   gl_FragColor = vec4(mix(uColor, uKeyColor, vKey) * a, a);
 }`;
 
+// The Moon is a quad around its disc. `vLocal` is in disc radii, so the disc
+// is everything inside 1 and the rest is room for its halo.
+const MOON_VERTEX = /* glsl */ `
+attribute vec2 position;
+uniform vec2 uResolution;
+uniform vec2 uCenter;
+uniform float uRadius;
+varying vec2 vLocal;
+void main() {
+  vLocal = position * 1.8;
+  vec2 p = uCenter + vLocal * uRadius;
+  vec2 clip = p / uResolution * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+}`;
+
+// Each point of the disc is a point on a sphere facing the viewer. It is lit
+// where its normal faces the Sun, given as `uLight` in screen terms (x right,
+// y down, z toward the viewer), which draws the terminator at the right
+// curve for any phase. The dark part keeps a trace of earthshine.
+const MOON_FRAGMENT = /* glsl */ `
+precision highp float;
+uniform vec3 uColor;
+uniform vec3 uLight;
+uniform float uAlpha;
+uniform float uGlow;
+uniform float uDark;
+uniform float uLit;
+uniform float uEdge;
+varying vec2 vLocal;
+void main() {
+  float r = length(vLocal);
+  float disc = 1.0 - smoothstep(1.0 - uEdge, 1.0, r);
+  vec3 n = vec3(vLocal, sqrt(max(0.0, 1.0 - r * r)));
+  float lit = smoothstep(-0.05, 0.08, dot(n, uLight));
+  float body = disc * mix(uDark, 0.95, lit);
+  float halo = uGlow * uLit * 0.3 * exp(-max(r - 1.0, 0.0) * 4.0) * (1.0 - smoothstep(1.4, 1.8, r));
+  float a = (body + halo * (1.0 - disc)) * uAlpha;
+  if (a < 0.003) discard;
+  gl_FragColor = vec4(uColor * a, a);
+}`;
+
 /** The most outline segments the scene will draw for one shape. */
 const MAX_OUTLINE = 2600;
+/** Room for every constellation line at once, which only the debug view uses. */
+const MAX_LINKS = 800;
+/** The camera's tilt at the top of a page, in degrees above the horizon. */
+const TOP_ALT = 72;
+/** The most the view tilts per screen of scroll, so short pages tilt gently. */
+const MAX_TILT = 6;
+/** Highlighted constellations at once, on wide screens and on phones. */
+const FIGURES_WIDE = 3;
+const FIGURES_NARROW = 2;
 
 type Anchor = Element | (() => DOMRect);
 
@@ -163,7 +228,17 @@ function hexToRgb(hex: string): [number, number, number] {
   return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number];
 }
 
-function create(): Scene | null {
+const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+async function load(): Promise<Catalogue> {
+  const [bin, data] = await Promise.all([
+    fetch(starsUrl).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('stars')))),
+    fetch(skyUrl).then((r) => (r.ok ? (r.json() as Promise<SkyData>) : Promise.reject(new Error('sky')))),
+  ]);
+  return decode(bin, data);
+}
+
+function create(cat: Catalogue): Scene | null {
   const canvas = document.createElement('canvas');
   canvas.className = 'sky-canvas';
   canvas.setAttribute('aria-hidden', 'true');
@@ -177,29 +252,31 @@ function create(): Scene | null {
   const gl = renderer.gl;
   if (!gl) return null;
   document.body.prepend(canvas);
+  const labelLayer = document.createElement('div');
+  labelLayer.className = 'sky-labels';
+  labelLayer.setAttribute('aria-hidden', 'true');
+  canvas.after(labelLayer);
 
   const N = window.innerWidth >= 900 ? 1400 : 650;
 
-  // Each star's place in the sky, in viewport-relative units, its depth
-  // (0 far, 1 near) and its stagger when joining a shape.
-  const skyX = new Float32Array(N);
-  const skyY = new Float32Array(N);
-  const homeX = new Float32Array(N);
-  const homeY = new Float32Array(N);
-  const depth = new Float32Array(N);
-  const baseDepth = new Float32Array(N);
+  // Each particle is bound to one catalogue star (`star`, -1 for a spare),
+  // and carries that star's direction above Yogyakarta (`hx`, `hy`, `hz`:
+  // east, north, up) and its brightness from 0 to 1. The rest is how it
+  // moves while part of a shape: its stagger when joining, and how it floats
+  // and glitters while it holds a filled shape.
+  const star = new Int32Array(N).fill(-1);
+  const particleOf = new Int32Array(cat.count).fill(-1);
+  const hx = new Float32Array(N);
+  const hy = new Float32Array(N);
+  const hz = new Float32Array(N);
+  const bright = new Float32Array(N);
   const stagger = new Float32Array(N);
   const twinkle = new Float32Array(N);
-  // How a star floats and glitters while it holds a filled shape: its own
-  // slow speeds and phases on each axis, and when its glints come round.
   const floatX = new Float32Array(N);
   const floatY = new Float32Array(N);
   const floatPhase = new Float32Array(N);
   const glint = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    homeX[i] = Math.random();
-    homeY[i] = Math.random();
-    baseDepth[i] = Math.pow(Math.random(), 2.2);
     stagger[i] = Math.random() * 0.55;
     twinkle[i] = Math.random() * Math.PI * 2;
     floatX[i] = 0.25 + Math.random() * 0.45;
@@ -207,22 +284,30 @@ function create(): Scene | null {
     floatPhase[i] = Math.random() * Math.PI * 2;
     glint[i] = 0.3 + Math.random() * 0.6;
   }
-  depth.set(baseDepth);
-  skyX.set(homeX);
-  skyY.set(homeY);
+  // Where each star sits in the sky this frame, before any shape moves it,
+  // and how much the horizon dims it (0 below it, 1 well above).
+  const skyPx = new Float32Array(N);
+  const skyPy = new Float32Array(N);
+  const ext = new Float32Array(N);
+  // Spare particles wait off screen at a spot of their own.
+  const spareX = new Float32Array(N);
+  for (let i = 0; i < N; i++) spareX[i] = Math.random();
 
   const position = new Float32Array(N * 3);
   const size = new Float32Array(N);
   const alpha = new Float32Array(N);
   const key = new Float32Array(N);
   const glow = new Float32Array(N);
-  // Which stars glow while loose in the sky. Every constellation star does
-  // (set in buildConstellations), and a few loose ones, more often the near.
-  const looseGlow = new Float32Array(N);
-  const baseGlow = new Float32Array(N);
-  for (let i = 0; i < N; i++) {
-    looseGlow[i] = Math.random() < 0.015 + baseDepth[i] * 0.06 ? 0.3 + Math.random() * 0.4 : 0;
-  }
+  // Extra glow for the stars of a highlighted constellation, set each frame.
+  const figGlow = new Float32Array(N);
+  // How far each star has been pushed aside by the pointer. Decays back.
+  const pushX = new Float32Array(N);
+  const pushY = new Float32Array(N);
+  // How far each star has joined the current shape, 0 to 1, so the
+  // constellation lines can leave with the stars they join.
+  const joined = new Float32Array(N);
+  // Which point of the current shape each particle forms, or -1.
+  const pointOf = new Int32Array(N).fill(-1);
 
   const points = new Geometry(gl, {
     position: { size: 3, data: position },
@@ -232,15 +317,6 @@ function create(): Scene | null {
     aGlow: { size: 1, data: glow },
   });
 
-  // Constellations. A handful of real figures (see constellations.ts) are
-  // placed among the loose stars, so some of the sky reads as a constellation
-  // and the rest stays plain stars. Each figure's stars share one depth, so
-  // they drift and scroll together and keep their shape. Each frame a line
-  // still checks its own length, and fades out when its stars are pulled apart
-  // (while a shape forms, or when one star wraps around the edge of the sky).
-  const MAX_LINKS = 80;
-  const links: number[] = [];
-  const restLength: number[] = [];
   const linePos = new Float32Array(MAX_LINKS * 2 * 3);
   const lineAlpha = new Float32Array(MAX_LINKS * 2);
   const lines = new Geometry(gl, {
@@ -248,57 +324,26 @@ function create(): Scene | null {
     aAlpha: { size: 1, data: lineAlpha },
   });
 
-  function buildConstellations(): void {
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    depth.set(baseDepth);
-    baseGlow.set(looseGlow);
-    skyX.set(homeX);
-    skyY.set(homeY);
-    links.length = 0;
-    restLength.length = 0;
-
-    const wide = W >= 900;
-    const wanted = Math.max(2, Math.min(5, Math.round((W * H) / 260000)));
-    const pool = [...constellations].sort(() => Math.random() - 0.5).slice(0, wanted);
-    const centres: Array<[number, number]> = [];
-    let next = 0;
-    for (const c of pool) {
-      // A figure's size on screen and its tilt, and a spot a good way from
-      // the others.
-      const width = (wide ? 170 : 120) * (0.85 + Math.random() * 0.5) * (c.w > 80 ? 1 : 0.7);
-      const k = width / c.w;
-      const turn = (Math.random() - 0.5) * 0.9;
-      let cx = 0;
-      let cy = 0;
-      for (let tries = 0; tries < 14; tries++) {
-        cx = W * (0.12 + Math.random() * 0.76);
-        cy = H * (0.12 + Math.random() * 0.76);
-        if (centres.every(([ox, oy]) => Math.hypot(ox - cx, oy - cy) > Math.min(W, H) * 0.42)) break;
-      }
-      centres.push([cx, cy]);
-      const z = 0.55 + Math.random() * 0.35;
-      const ids = c.stars.map(([sx, sy]) => {
-        const i = next++;
-        const dx = (sx - c.w / 2) * k;
-        const dy = (sy - c.h / 2) * k;
-        const x = cx + dx * Math.cos(turn) - dy * Math.sin(turn);
-        const y = cy + dx * Math.sin(turn) + dy * Math.cos(turn);
-        // The sky draws a star at skyX * (W + 80) - 40, so undo that here.
-        skyX[i] = (x + 40) / (W + 80);
-        skyY[i] = (y + 40) / (H + 80);
-        depth[i] = z;
-        baseGlow[i] = 0.65 + Math.random() * 0.35;
-        return i;
-      });
-      for (const [a, b] of c.edges) {
-        if (links.length / 2 >= MAX_LINKS) break;
-        links.push(ids[a], ids[b]);
-        restLength.push(Math.hypot((skyX[ids[a]] - skyX[ids[b]]) * (W + 80), (skyY[ids[a]] - skyY[ids[b]]) * (H + 80)));
-      }
-    }
-  }
-  buildConstellations();
+  // Satellites and shooting stars: one satellite and two meteor heads as
+  // points, and the two meteor tails as lines.
+  const T = 3;
+  const tPos = new Float32Array(T * 3);
+  const tSize = new Float32Array(T);
+  const tAlpha = new Float32Array(T);
+  const tGlow = new Float32Array(T);
+  const transients = new Geometry(gl, {
+    position: { size: 3, data: tPos },
+    aSize: { size: 1, data: tSize },
+    aAlpha: { size: 1, data: tAlpha },
+    aKey: { size: 1, data: new Float32Array(T) },
+    aGlow: { size: 1, data: tGlow },
+  });
+  const tailPos = new Float32Array(2 * 2 * 3);
+  const tailAlpha = new Float32Array(2 * 2);
+  const tails = new Geometry(gl, {
+    position: { size: 3, data: tailPos },
+    aAlpha: { size: 1, data: tailAlpha },
+  });
 
   const uniforms = {
     uResolution: { value: [window.innerWidth, window.innerHeight] },
@@ -310,10 +355,24 @@ function create(): Scene | null {
     uGlow: { value: 0 },
     uHalf: { value: 12 },
   };
+  const moonUniforms = {
+    uResolution: uniforms.uResolution,
+    uColor: uniforms.uColor,
+    uCenter: { value: [0, 0] },
+    uRadius: { value: 10 },
+    uLight: { value: [0, 0, 1] },
+    uAlpha: { value: 0 },
+    uGlow: { value: 0 },
+    uDark: { value: 0.05 },
+    uLit: { value: 1 },
+    uEdge: { value: 0.1 },
+  };
   const common = { uniforms, transparent: true, depthTest: false, depthWrite: false };
   const pointProgram = new Program(gl, { ...common, vertex: VERTEX, fragment: POINT_FRAGMENT });
   const lineProgram = new Program(gl, { ...common, vertex: LINE_VERTEX, fragment: LINE_FRAGMENT });
+  const tailProgram = new Program(gl, { ...common, uniforms: { ...uniforms, uLineAlpha: { value: 0.8 } }, vertex: LINE_VERTEX, fragment: LINE_FRAGMENT });
   const outlineProgram = new Program(gl, { ...common, vertex: OUTLINE_VERTEX, fragment: OUTLINE_FRAGMENT });
+  const moonProgram = new Program(gl, { ...common, uniforms: moonUniforms, vertex: MOON_VERTEX, fragment: MOON_FRAGMENT });
   // WebGL 1 has MAX blending only through an extension. Without it the joints
   // brighten a little where segments overlap, which is acceptable.
   const blendMax = renderer.isWebgl2 ? (gl as WebGL2RenderingContext).MAX : gl.getExtension('EXT_blend_minmax')?.MAX_EXT;
@@ -326,11 +385,19 @@ function create(): Scene | null {
     aSeg: { size: 4, data: outlineSeg, instanced: 1 },
     aKey: { size: 1, data: outlineKey, instanced: 1 },
   });
+  const moonGeometry = new Geometry(gl, {
+    position: { size: 2, data: new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]) },
+    index: { data: new Uint16Array([0, 1, 2, 2, 1, 3]) },
+  });
   const root = new Transform();
   const outlineMesh = new Mesh(gl, { geometry: outlineGeometry, program: outlineProgram });
   outlineMesh.setParent(root);
   new Mesh(gl, { geometry: lines, program: lineProgram, mode: gl.LINES }).setParent(root);
+  new Mesh(gl, { geometry: tails, program: tailProgram, mode: gl.LINES }).setParent(root);
+  const moonMesh = new Mesh(gl, { geometry: moonGeometry, program: moonProgram });
+  moonMesh.setParent(root);
   new Mesh(gl, { geometry: points, program: pointProgram, mode: gl.POINTS }).setParent(root);
+  new Mesh(gl, { geometry: transients, program: pointProgram, mode: gl.POINTS }).setParent(root);
 
   // Theme. Stars glow additively on dark, and sit as soft ink on light.
   let dark = false;
@@ -339,7 +406,7 @@ function create(): Scene | null {
     dark = css.colorScheme.includes('dark');
     uniforms.uColor.value = hexToRgb(css.getPropertyValue('--text'));
     uniforms.uKeyColor.value = hexToRgb(css.getPropertyValue('--brand'));
-    for (const p of [pointProgram, lineProgram, outlineProgram]) {
+    for (const p of [pointProgram, lineProgram, tailProgram, outlineProgram, moonProgram]) {
       if (dark) p.setBlendFunc(gl.ONE, gl.ONE);
       else p.setBlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
@@ -348,19 +415,298 @@ function create(): Scene | null {
   new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
 
-  // Phones fire `resize` as the address bar slides away, so the
-  // constellations are only redrawn when the width changes.
-  let builtFor = window.innerWidth;
-  function resize(): void {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    uniforms.uResolution.value = [window.innerWidth, window.innerHeight];
-    if (window.innerWidth !== builtFor) {
-      builtFor = window.innerWidth;
-      buildConstellations();
+  // The view. Pixels per degree follow the width, so Orion stands about
+  // 280 px tall on a laptop and the phone still holds a good stretch of sky.
+  // The camera tilts from TOP_ALT down to where the southern horizon meets
+  // the bottom edge.
+  const view = { W: 0, H: 0, ppd: 0, S: 0, low: 0, top: 0, alt: TOP_ALT };
+  function measure(): void {
+    view.W = window.innerWidth;
+    view.H = window.innerHeight;
+    view.ppd = Math.max(6.5, Math.min(16, view.W / 100));
+    view.S = view.ppd / RAD;
+    view.low = horizonAlt(view.H, view.S);
+    view.top = Math.max(view.low, TOP_ALT);
+  }
+  measure();
+  let docHeight = document.documentElement.scrollHeight;
+  new ResizeObserver(() => (docHeight = document.documentElement.scrollHeight)).observe(document.body);
+
+  /**
+   * Screen position of a local direction for a camera tilted `alt` degrees,
+   * as `out`, or false when it's behind the camera. The same stereographic
+   * projection as `sky/astro.ts`, inlined because it runs for every star in
+   * every frame.
+   */
+  const proj: [number, number] = [0, 0];
+  function toScreen(x: number, y: number, z: number, s: number, c: number, out = proj): boolean {
+    const Z = -y * c + z * s;
+    if (Z < -0.6) return false;
+    const k = (2 / (1 + Z)) * view.S;
+    out[0] = view.W / 2 - x * k;
+    out[1] = view.H / 2 - (y * s + z * c) * k;
+    return true;
+  }
+
+  /** The camera's tilt from the scroll, unless the URL pinned it. */
+  function tilt(scroll: number): void {
+    const range = view.top - view.low;
+    const progress = Math.min(1, scroll / Math.max(1, docHeight - view.H));
+    view.alt = clock.alt ?? view.top - Math.min(range * progress, (MAX_TILT * scroll) / view.H);
+  }
+
+  /**
+   * Every star's place on screen for this tilt, before any shape moves it,
+   * and how much the horizon dims it. Stars are the far layer, so they lean
+   * least toward the pointer.
+   */
+  function placeSky(sa: number, ca: number): void {
+    const leanX = lean.x * 16;
+    const leanY = lean.y * 10;
+    for (let i = 0; i < N; i++) {
+      if (star[i] < 0) {
+        skyPx[i] = spareX[i] * view.W;
+        skyPy[i] = -80;
+        ext[i] = 0;
+      } else if (toScreen(hx[i], hy[i], hz[i], sa, ca)) {
+        skyPx[i] = proj[0] + leanX;
+        skyPy[i] = proj[1] + leanY;
+        // The horizon swallows a star, and the thick air near it dims one.
+        ext[i] = hz[i] <= 0 ? 0 : 0.2 + 0.8 * clamp01(hz[i] / 0.2);
+      } else {
+        // Behind the camera: it keeps its last place, unseen.
+        ext[i] = 0;
+      }
     }
   }
-  resize();
-  window.addEventListener('resize', resize);
+
+  // The sky's state from the clock: the Moon and the shower, refreshed with
+  // the stars' directions.
+  let moonState: Moon | null = null;
+  let shower: Shower | null = null;
+  let radiant: [number, number, number] | null = null;
+  const tmp: [number, number, number] = [0, 0, 0];
+
+  function updateSky(now: number): void {
+    const lst = sidereal(now);
+    for (let i = 0; i < N; i++) {
+      const s = star[i];
+      if (s < 0) continue;
+      toLocal(cat.ra[s], cat.dec[s], lst, tmp);
+      hx[i] = tmp[0];
+      hy[i] = tmp[1];
+      hz[i] = tmp[2];
+    }
+    moonState = moonAt(now);
+    shower = activeShower(now);
+    radiant = shower ? toLocal(shower.ra, shower.dec, lst, [0, 0, 0]) : null;
+  }
+
+  // The pool. Each particle holds one of the stars that can come into view
+  // at some scroll position: every constellation star there, then the
+  // brightest of the rest. As the sky turns, stars that set or leave are
+  // swapped for ones that came in, except while they're part of a shape.
+  let rebindLog: number[] = [];
+  let boundAt = 0;
+  const reach = new Uint8Array(cat.count);
+  const wanted = new Uint8Array(cat.count);
+  const held = new Uint8Array(cat.count);
+  const lowPt: [number, number] = [0, 0];
+  const topPt: [number, number] = [0, 0];
+
+  function bind(now: number): void {
+    const lst = sidereal(now);
+    const { W, H } = view;
+    const m = 60;
+    const sl = Math.sin(view.low * RAD);
+    const cl = Math.cos(view.low * RAD);
+    const st = Math.sin(view.top * RAD);
+    const ct = Math.cos(view.top * RAD);
+    reach.fill(0);
+    for (let i = 0; i < cat.count; i++) {
+      toLocal(cat.ra[i], cat.dec[i], lst, tmp);
+      if (tmp[2] <= 0) continue;
+      const a = toScreen(tmp[0], tmp[1], tmp[2], sl, cl, lowPt);
+      const b = toScreen(tmp[0], tmp[1], tmp[2], st, ct, topPt);
+      if (!a && !b) continue;
+      const inX = (a && lowPt[0] > -m && lowPt[0] < W + m) || (b && topPt[0] > -m && topPt[0] < W + m);
+      if (!inX) continue;
+      const y0 = a ? lowPt[1] : topPt[1];
+      const y1 = b ? topPt[1] : lowPt[1];
+      if (Math.max(y0, y1) < -m || Math.min(y0, y1) > H + m) continue;
+      reach[i] = 1;
+    }
+    const desired: number[] = [];
+    for (const s of cat.figuresOf.keys()) if (reach[s]) desired.push(s);
+    for (let i = 0; i < cat.count && desired.length < N; i++) if (reach[i] && !cat.figuresOf.has(i)) desired.push(i);
+    desired.length = Math.min(desired.length, N);
+    wanted.fill(0);
+    for (const s of desired) wanted[s] = 1;
+
+    held.fill(0);
+    const free: number[] = [];
+    for (let p = 0; p < N; p++) {
+      const s = star[p];
+      const locked = joined[p] > 0.001 || (pointOf[p] >= 0 && scene.form > 0.001);
+      if (s >= 0 && (wanted[s] || locked)) {
+        held[s] = 1;
+        continue;
+      }
+      if (!locked) free.push(p);
+    }
+    let f = 0;
+    const stamp = performance.now();
+    for (const s of desired) {
+      if (held[s]) continue;
+      if (f >= free.length) break;
+      const p = free[f++];
+      if (star[p] >= 0) {
+        particleOf[star[p]] = -1;
+        rebindLog.push(stamp);
+      }
+      star[p] = s;
+      particleOf[s] = p;
+      held[s] = 1;
+    }
+    for (; f < free.length; f++) {
+      const p = free[f];
+      if (star[p] >= 0) particleOf[star[p]] = -1;
+      star[p] = -1;
+    }
+    for (let p = 0; p < N; p++) {
+      const s = star[p];
+      bright[p] = s >= 0 ? clamp01((6 - cat.mag[s]) / 7.5) : 0;
+    }
+    rebindLog = rebindLog.filter((t) => stamp - t < 60000);
+    boundAt = now;
+    updateSky(now);
+  }
+
+  // Constellations. Each figure's lines are put in drawing order once: a walk
+  // from its brightest star, so a figure draws itself like a pen tracing it.
+  const figStars = cat.figures.map((f) => [...new Set(f.edges.flat())]);
+  const ordered = cat.figures.map((f) => {
+    const out: Array<[number, number]> = [];
+    const left = [...f.edges];
+    const seen = new Set<number>([Math.min(...f.edges.flat())]);
+    while (left.length) {
+      let k = left.findIndex(([a, b]) => seen.has(a) || seen.has(b));
+      if (k < 0) {
+        k = 0;
+        seen.add(left[0][0]);
+      }
+      const [a, b] = left.splice(k, 1)[0];
+      out.push(seen.has(a) ? [a, b] : [b, a]);
+      seen.add(a);
+      seen.add(b);
+    }
+    return out;
+  });
+
+  interface Chosen {
+    k: number;
+    /** How much of the figure is drawn, 0 to 1. */
+    draw: number;
+    /** Its opacity, which falls to 0 once it's dropped. */
+    alpha: number;
+    leaving: boolean;
+    score: number;
+    frac: number;
+    label: HTMLSpanElement;
+  }
+  const chosen: Chosen[] = [];
+  const cooldown = new Map<number, number>();
+  let showAll = false;
+  let lastPick = -10;
+
+  function label(k: number): HTMLSpanElement {
+    const el = document.createElement('span');
+    el.textContent = cat.figures[k].name;
+    el.style.opacity = '0';
+    labelLayer.append(el);
+    return el;
+  }
+
+  /** How much of figure `k` is on screen, its box, and whether all its stars are in the pool. */
+  function measureFigure(k: number): { frac: number; all: boolean; x0: number; y0: number; x1: number; y1: number; b: number } {
+    const { W, H } = view;
+    let on = 0;
+    let all = true;
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    let b = 0;
+    for (const s of figStars[k]) {
+      const p = particleOf[s];
+      if (p < 0 || ext[p] <= 0) {
+        all = false;
+        continue;
+      }
+      const x = skyPx[p];
+      const y = skyPy[p];
+      if (x > W * 0.04 && x < W * 0.96 && y > H * 0.05 && y < H * 0.9) on++;
+      x0 = Math.min(x0, x);
+      y0 = Math.min(y0, y);
+      x1 = Math.max(x1, x);
+      y1 = Math.max(y1, y);
+      b += bright[p];
+    }
+    return { frac: on / figStars[k].length, all, x0, y0, x1, y1, b: b / figStars[k].length };
+  }
+
+  /** Keeps the highlighted figures that are still in view and fills the free places. */
+  function pickFigures(time: number): void {
+    lastPick = time;
+    const max = view.W >= 900 ? FIGURES_WIDE : FIGURES_NARROW;
+    const boxes: Array<[number, number, number, number]> = [];
+    for (const c of chosen) {
+      if (c.leaving) continue;
+      const m = measureFigure(c.k);
+      c.frac = m.frac;
+      if (!showAll && (!m.all || m.frac < 0.6)) {
+        c.leaving = true;
+        cooldown.set(c.k, time + 6);
+      } else {
+        boxes.push([m.x0, m.y0, m.x1, m.y1]);
+      }
+    }
+    let active = chosen.filter((c) => !c.leaving).length;
+    if (!showAll && active >= max) return;
+    const candidates: Array<{ k: number; score: number; frac: number; box: [number, number, number, number] }> = [];
+    cat.figures.forEach((f, k) => {
+      if (chosen.some((c) => c.k === k && !c.leaving)) return;
+      if (!showAll && (cooldown.get(k) ?? 0) > time) return;
+      const m = measureFigure(k);
+      const w = m.x1 - m.x0;
+      const h = m.y1 - m.y0;
+      if (showAll) {
+        if (m.frac >= 0.3) candidates.push({ k, score: 0, frac: m.frac, box: [m.x0, m.y0, m.x1, m.y1] });
+        return;
+      }
+      if (!m.all || m.frac < 0.95 || Math.max(w, h) < 50 || w > view.W * 0.8 || h > view.H * 0.8) return;
+      const rankWeight = f.rank === 1 ? 1 : f.rank === 2 ? 0.6 : 0.3;
+      candidates.push({ k, score: rankWeight * (0.4 + m.b), frac: m.frac, box: [m.x0, m.y0, m.x1, m.y1] });
+    });
+    candidates.sort((a, b) => b.score - a.score);
+    for (const c of candidates) {
+      if (!showAll) {
+        if (active >= max) break;
+        // Keep the highlighted figures apart, so each reads on its own.
+        const [x0, y0, x1, y1] = c.box;
+        if (boxes.some(([a0, b0, a1, b1]) => x0 < a1 + 30 && x1 > a0 - 30 && y0 < b1 + 30 && y1 > b0 - 30)) continue;
+        boxes.push(c.box);
+      }
+      const old = chosen.find((o) => o.k === c.k);
+      if (old) {
+        old.leaving = false;
+        old.score = c.score;
+      } else {
+        chosen.push({ k: c.k, draw: showAll ? 1 : 0, alpha: 1, leaving: false, score: c.score, frac: c.frac, label: label(c.k) });
+      }
+      active++;
+    }
+  }
 
   // The pointer, eased, as an offset from the centre of the screen.
   const pointer = { x: 0, y: 0, px: -9999, py: -9999 };
@@ -372,12 +718,22 @@ function create(): Scene | null {
     pointer.x = e.clientX / window.innerWidth - 0.5;
     pointer.y = e.clientY / window.innerHeight - 0.5;
   });
-  // How far each star has been pushed aside by the pointer. Decays back.
-  const pushX = new Float32Array(N);
-  const pushY = new Float32Array(N);
-  // How far each star has joined the current shape, 0 to 1, so the
-  // constellation lines can leave with the stars they join.
-  const joined = new Float32Array(N);
+
+  // Phones fire `resize` as the address bar slides away, so the pool is only
+  // rebuilt when the width changes.
+  let builtFor = window.innerWidth;
+  function resize(): void {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    uniforms.uResolution.value = [window.innerWidth, window.innerHeight];
+    measure();
+    docHeight = document.documentElement.scrollHeight;
+    if (window.innerWidth !== builtFor) {
+      builtFor = window.innerWidth;
+      bind(skyNow());
+    }
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
   // The current shape's outline, as unit-box segment endpoints.
   const outlineUnit = new Float32Array(MAX_OUTLINE * 4);
@@ -412,18 +768,112 @@ function create(): Scene | null {
       }
       outlineCount = n;
       outlineGeometry.attributes.aKey.needsUpdate = true;
+
+      // Which stars form it: the bright ones on screen first, then the ones
+      // nearest the shape from beyond the edge. A page may call this before
+      // the first frame, so place the sky now.
+      tilt(window.scrollY);
+      placeSky(Math.sin(view.alt * RAD), Math.cos(view.alt * RAD));
+      const r = typeof where === 'function' ? where() : where.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const { W, H } = view;
+      const order = Array.from({ length: N }, (_, i) => i);
+      const onScreen = (i: number): boolean => star[i] >= 0 && ext[i] > 0 && skyPx[i] > 0 && skyPx[i] < W && skyPy[i] > 0 && skyPy[i] < H;
+      const rankOf = (i: number): number => (onScreen(i) ? -10 - bright[i] : Math.hypot(skyPx[i] - cx, skyPy[i] - cy));
+      const ranks = order.map(rankOf);
+      order.sort((a, b) => ranks[a] - ranks[b]);
+      pointOf.fill(-1);
+      for (let j = 0; j < Math.min(next.count, N); j++) pointOf[order[j]] = j;
     },
   };
 
+  // Satellites: one at a time, a steady point crossing on a straight line.
+  // Some pass into the Earth's shadow on the way and fade out.
+  const sat = { on: false, t0: 0, dur: 40, x0: 0, y0: 0, x1: 0, y1: 0, shadow: -1, alt0: 0, next: 20 + Math.random() * 30 };
+  function sendSatellite(time: number): void {
+    const { W, H } = view;
+    const side = Math.random() < 0.5;
+    const a = Math.random();
+    const b = Math.random();
+    // From one edge to the opposite one, mostly across rather than down.
+    if (side) Object.assign(sat, { x0: -20, y0: H * (0.1 + a * 0.6), x1: W + 20, y1: H * (0.1 + b * 0.6) });
+    else Object.assign(sat, { x0: W + 20, y0: H * (0.1 + a * 0.6), x1: -20, y1: H * (0.1 + b * 0.6) });
+    sat.on = true;
+    sat.t0 = time;
+    sat.dur = 30 + Math.random() * 30;
+    sat.shadow = Math.random() < 0.4 ? 0.3 + Math.random() * 0.4 : -1;
+    sat.alt0 = view.alt;
+    sat.next = time + sat.dur + 60 + Math.random() * 60;
+  }
+
+  // Shooting stars. During a shower, most fly out from its radiant.
+  const meteors = [0, 1].map(() => ({ on: false, t0: 0, dur: 0.7, x: 0, y: 0, dx: 0, dy: 0, len: 200, alt0: 0 }));
+  let nextMeteor = 8 + Math.random() * 20;
+  function fireMeteor(time: number): void {
+    const m = meteors.find((o) => !o.on);
+    if (!m) return;
+    const { W, H } = view;
+    m.x = W * (0.1 + Math.random() * 0.8);
+    m.y = H * (0.08 + Math.random() * 0.5);
+    let dx = 0;
+    let dy = 0;
+    const s = Math.sin(view.alt * RAD);
+    const c = Math.cos(view.alt * RAD);
+    const p: [number, number] = [0, 0];
+    if (radiant && radiant[2] > 0.05 && Math.random() < 0.75 && toScreen(radiant[0], radiant[1], radiant[2], s, c, p)) {
+      dx = m.x - p[0];
+      dy = m.y - p[1];
+    }
+    if (Math.hypot(dx, dy) < 1) {
+      const angle = (20 + Math.random() * 140) * RAD;
+      dx = Math.cos(angle);
+      dy = Math.sin(angle);
+    }
+    const l = Math.hypot(dx, dy);
+    m.dx = dx / l;
+    m.dy = dy / l;
+    m.len = 180 + Math.random() * 140;
+    m.dur = 0.55 + Math.random() * 0.35;
+    m.t0 = time;
+    m.alt0 = view.alt;
+    m.on = true;
+  }
+
   const ease = (t: number): number => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3));
+
+  let lastTime = 0;
+  let lastSky = -10;
+  let lastBindTime = 0;
+  let frameMs = 0;
+  let moonInViewNow = false;
+  let moonWhy = '';
 
   function frame(time: number): void {
     if (document.hidden) return;
-    const W = window.innerWidth;
-    const H = window.innerHeight;
+    const started = performance.now();
+    const dt = Math.min(0.1, Math.max(0, time - lastTime));
+    lastTime = time;
+    const { W, H } = view;
     const scroll = window.scrollY;
     lean.x += (pointer.x - lean.x) * 0.05;
     lean.y += (pointer.y - lean.y) * 0.05;
+
+    tilt(scroll);
+    const sa = Math.sin(view.alt * RAD);
+    const ca = Math.cos(view.alt * RAD);
+
+    // The sky turns a quarter of a degree a minute, so once a second is
+    // plenty, unless the clock has been sped up.
+    const now = skyNow();
+    if (clock.speed !== 1 || time - lastSky >= 1) {
+      lastSky = time;
+      updateSky(now);
+    }
+    if (time - lastBindTime >= 10 || Math.abs(now - boundAt) > 600000) {
+      lastBindTime = time;
+      bind(now);
+    }
 
     // Where the current shape sits on screen this frame.
     let rx = 0;
@@ -440,40 +890,62 @@ function create(): Scene | null {
     const cx = rx + rw / 2;
     const cy = ry + rh / 2;
 
-    for (let i = 0; i < N; i++) {
-      const z = depth[i];
-      // Sky position: drift sideways over time, move with scroll by depth,
-      // wrap around the screen, and lean toward the pointer.
-      let sx = (skyX[i] + time * 0.0015 * (0.3 + z)) % 1;
-      let sy = (skyY[i] - (scroll / H) * (0.04 + z * 0.3)) % 1;
-      if (sy < 0) sy += 1;
-      sx = sx * (W + 80) - 40 + lean.x * z * 60;
-      sy = sy * (H + 80) - 40 + lean.y * z * 40;
+    // Highlighted constellations: how far each is drawn. Which ones are in is
+    // decided after the stars below have moved.
+    figGlow.fill(0);
+    for (let n = chosen.length - 1; n >= 0; n--) {
+      const c = chosen[n];
+      c.draw = Math.min(1, c.draw + dt / 1.5);
+      if (c.leaving) c.alpha -= dt / 0.8;
+      if (c.alpha <= 0) {
+        c.label.remove();
+        chosen.splice(n, 1);
+        continue;
+      }
+      for (const s of figStars[c.k]) {
+        const p = particleOf[s];
+        if (p >= 0) figGlow[p] = Math.max(figGlow[p], c.alpha * c.draw);
+      }
+    }
 
+    placeSky(sa, ca);
+    for (let i = 0; i < N; i++) {
+      const sx = skyPx[i];
+      const sy = skyPy[i];
+      const e = ext[i];
       let x = sx;
       let y = sy;
       let inShape = 0;
-      if (shape && i < shape.count && rw > 0) {
+      const j = shape ? pointOf[i] : -1;
+      if (shape && j >= 0 && rw > 0) {
         const w = ease((scene.form * 1.55 - stagger[i]) / 1);
-        let tx = rx + shape.x[i] * rw;
-        let ty = ry + shape.y[i] * rh;
+        let tx = rx + shape.x[j] * rw;
+        let ty = ry + shape.y[j] * rh;
         // A star in a filled shape floats about its place, never further than
         // its room, so the shape keeps its edge. Each axis mixes two sines
         // whose weights add up to 1, so it moves at most 0.7 of the room and
         // the drift as a whole stays inside it.
-        const room = Math.min(shape.room[i] * rh * 0.7, 7);
+        const room = Math.min(shape.room[j] * rh * 0.7, 7);
         if (room > 0) {
           const ph = floatPhase[i];
           tx += room * (Math.sin(time * floatX[i] + ph) * 0.7 + Math.sin(time * floatX[i] * 2.3 + ph * 1.7) * 0.3);
           ty += room * (Math.sin(time * floatY[i] + ph * 2.1) * 0.7 + Math.sin(time * floatY[i] * 1.9 + ph * 0.6) * 0.3);
         }
+        // A star from far beyond the edge enters from just outside it, so it
+        // doesn't streak across the whole screen.
+        const fx = Math.min(W * 1.15, Math.max(-W * 0.15, sx));
+        const fy = Math.min(H * 1.15, Math.max(-H * 0.15, sy));
         // While breaking apart, stars arc outward from the shape's centre.
         const arc = Math.sin(w * Math.PI) * scene.burst * 140;
         const dx = tx - cx;
         const dy = ty - cy;
         const dl = Math.hypot(dx, dy) || 1;
-        x = sx + (tx - sx) * w + (dx / dl) * arc;
-        y = sy + (ty - sy) * w + (dy / dl) * arc;
+        x = fx + (tx - fx) * w + (dx / dl) * arc;
+        y = fy + (ty - fy) * w + (dy / dl) * arc;
+        if (w <= 0) {
+          x = sx;
+          y = sy;
+        }
         inShape = w;
         if (scene.repel) {
           const qx = x + pushX[i] - pointer.px;
@@ -493,23 +965,27 @@ function create(): Scene | null {
 
       position[i * 3] = x;
       position[i * 3 + 1] = y;
-      position[i * 3 + 2] = z;
+      position[i * 3 + 2] = 0;
       joined[i] = inShape;
 
-      const tw = 0.7 + 0.3 * Math.sin(time * (0.8 + z) + twinkle[i]);
-      const skyAlpha = (0.18 + z * 0.62) * tw;
+      // Brightness comes from the star's magnitude. Stars low in the sky
+      // twinkle harder, as they do through more air.
+      const b = bright[i];
+      const lowSky = 1 - clamp01(hz[i] / 0.5);
+      const tw = 1 - (0.18 + lowSky * 0.25) * (0.5 + 0.5 * Math.sin(time * (0.8 + b) + twinkle[i]));
+      const skyAlpha = (0.14 + 0.8 * Math.pow(b, 0.8)) * tw * e + figGlow[i] * 0.25 * e;
       let a = skyAlpha;
-      let s = 1.4 + z * 2.6;
-      if (shape && i < shape.count) {
+      let s = 1.2 + 3 * Math.pow(b, 1.2) + figGlow[i] * 0.8;
+      if (shape && j >= 0) {
         // A pulse runs along connector points, as data travelling the line.
-        const p = shape.path[i];
+        const p = shape.path[j];
         const pulse = p >= 0 ? Math.pow(Math.max(0, 1 - Math.abs(((p - time * 0.22) % 1 + 1) % 1 - 0.5) * 9), 2) : 0;
         // Stars in a filled shape glitter: a slow shimmer, and now and then a
         // short glint, a sine raised to a high power so it only peaks briefly.
-        const filled = shape.room[i] > 0 ? 1 : 0;
+        const filled = shape.room[j] > 0 ? 1 : 0;
         const shimmer = 1 - filled * 0.18 * (0.5 + 0.5 * Math.sin(time * 1.7 + twinkle[i]));
         const flash = filled * Math.pow(Math.max(0, Math.sin(time * glint[i] + twinkle[i] * 3)), 60);
-        const shapeAlpha = (0.75 * shape.weight[i] + pulse * 0.9) * shimmer + flash * 0.7;
+        const shapeAlpha = (0.75 * shape.weight[j] + pulse * 0.9) * shimmer + flash * 0.7;
         a = skyAlpha + (shapeAlpha - skyAlpha) * inShape;
         s = s + (2.3 + pulse * 3 + flash * 2.2 - s) * inShape;
       } else if (shape) {
@@ -519,37 +995,160 @@ function create(): Scene | null {
       alpha[i] = a * scene.presence * (dark ? 1 : 0.7);
       size[i] = s;
       // Violet only while a star is part of a shape, never loose in the sky.
-      key[i] = shape && i < shape.count ? shape.key[i] * inShape : 0;
+      key[i] = shape && j >= 0 ? shape.key[j] * inShape : 0;
       // The glow belongs to the open sky, so it fades as a star joins a shape.
       // Dark only, because a halo of ink on a light page reads as a smudge.
-      glow[i] = dark ? baseGlow[i] * (1 - inShape) : 0;
+      const starGlow = star[i] >= 0 ? clamp01((1.8 - cat.mag[star[i]]) / 3) * 0.8 : 0;
+      glow[i] = dark ? Math.max(starGlow, figGlow[i] * (0.65 + 0.35 * b)) * (1 - inShape) * e : 0;
     }
 
-    // A line is drawn only while its two stars still sit where the sky put
-    // them, about as far apart as they started. Stars pulled toward a shape,
-    // or one that wrapped around the edge of the sky, take the line with them.
-    const segments = links.length / 2;
-    const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+    if (time - lastPick >= 1.5) pickFigures(time);
+
+    // Constellation lines, drawn edge by edge as a figure comes in. A line
+    // leaves with its stars when they join a shape, and fades at the screen's
+    // edge and at the horizon.
     const edge = (v: number, extent: number): number => clamp01(Math.min(v + 40, extent + 40 - v) / 160);
-    lineAlpha.fill(0);
-    for (let k = 0; k < segments; k++) {
-      const a = links[k * 2];
-      const b = links[k * 2 + 1];
-      const ax = position[a * 3];
-      const ay = position[a * 3 + 1];
-      const bx = position[b * 3];
-      const by = position[b * 3 + 1];
-      const rest = restLength[k];
-      const stretch = clamp01((rest * 1.6 - Math.hypot(ax - bx, ay - by)) / (rest * 0.45));
-      const fade = Math.min(edge(ax, W), edge(bx, W), edge(ay, H), edge(by, H));
-      const a01 = stretch * fade * (1 - Math.max(joined[a], joined[b]));
-      linePos[k * 6] = ax;
-      linePos[k * 6 + 1] = ay;
-      linePos[k * 6 + 3] = bx;
-      linePos[k * 6 + 4] = by;
-      lineAlpha[k * 2] = a01;
-      lineAlpha[k * 2 + 1] = a01;
+    let seg = 0;
+    for (const c of chosen) {
+      const list = ordered[c.k];
+      const n = list.length;
+      let lx0 = Infinity;
+      let lx1 = -Infinity;
+      let ly1 = -Infinity;
+      for (let k = 0; k < n && seg < MAX_LINKS; k++) {
+        const pa = particleOf[list[k][0]];
+        const pb = particleOf[list[k][1]];
+        if (pa < 0 || pb < 0) continue;
+        const ax = position[pa * 3];
+        const ay = position[pa * 3 + 1];
+        lx0 = Math.min(lx0, skyPx[pa], skyPx[pb]);
+        lx1 = Math.max(lx1, skyPx[pa], skyPx[pb]);
+        ly1 = Math.max(ly1, skyPy[pa], skyPy[pb]);
+        const p = clamp01(c.draw * n - k);
+        if (p <= 0) continue;
+        const bx = ax + (position[pb * 3] - ax) * p;
+        const by = ay + (position[pb * 3 + 1] - ay) * p;
+        const fade = Math.min(edge(ax, W), edge(bx, W), edge(ay, H), edge(by, H));
+        const a01 = c.alpha * fade * Math.min(ext[pa], ext[pb]) * (1 - Math.max(joined[pa], joined[pb]));
+        linePos[seg * 6] = ax;
+        linePos[seg * 6 + 1] = ay;
+        linePos[seg * 6 + 3] = bx;
+        linePos[seg * 6 + 4] = by;
+        lineAlpha[seg * 2] = a01;
+        lineAlpha[seg * 2 + 1] = a01;
+        seg++;
+      }
+      // The name sits under the figure, once most of it is drawn.
+      if (lx0 < Infinity) {
+        const x = Math.min(W - 48, Math.max(48, (lx0 + lx1) / 2));
+        const y = Math.min(H - 48, Math.max(16, ly1 + 16));
+        const o = c.alpha * clamp01(c.draw * 2 - 1) * scene.presence * (1 - scene.form) * 0.9;
+        c.label.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translateX(-50%)`;
+        c.label.style.opacity = o.toFixed(3);
+      }
     }
+    lines.setDrawRange(0, seg * 2);
+
+    // The Moon, at its real place and phase, a few times its true size so
+    // the phase reads. It never joins a shape, and steps aside for one.
+    moonMesh.visible = false;
+    moonInViewNow = false;
+    moonWhy = 'not computed yet';
+    if (moonState) {
+      const m = moonState.dir;
+      const radius = Math.max(8, 0.78 * view.ppd);
+      const p: [number, number] = [0, 0];
+      if (m[2] < -0.01) moonWhy = 'below the horizon';
+      else if (!toScreen(m[0], m[1], m[2], sa, ca, p)) moonWhy = 'behind the camera';
+      else if (p[0] < -radius * 2 || p[0] > W + radius * 2 || p[1] < -radius * 2 || p[1] > H + radius * 2) moonWhy = 'outside the view';
+      else {
+        moonInViewNow = true;
+        moonWhy = '';
+        // The lit side faces the Sun. Its direction on screen comes from a
+        // point a little way from the Moon toward the Sun.
+        const sd = moonState.sunDir;
+        const dot = sd[0] * m[0] + sd[1] * m[1] + sd[2] * m[2];
+        let tx = sd[0] - dot * m[0];
+        let ty = sd[1] - dot * m[1];
+        let tz = sd[2] - dot * m[2];
+        const tl = Math.hypot(tx, ty, tz) || 1;
+        tx = m[0] + (tx / tl) * 0.01;
+        ty = m[1] + (ty / tl) * 0.01;
+        tz = m[2] + (tz / tl) * 0.01;
+        const q: [number, number] = [0, 0];
+        let bx = 0;
+        let by = -1;
+        if (toScreen(tx, ty, tz, sa, ca, q)) {
+          const bl = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+          bx = (q[0] - p[0]) / bl;
+          by = (q[1] - p[1]) / bl;
+        }
+        const i = moonState.phaseAngle * RAD;
+        moonUniforms.uLight.value = [Math.sin(i) * bx, Math.sin(i) * by, Math.cos(i)];
+        moonUniforms.uCenter.value = [p[0] + lean.x * 16, p[1] + lean.y * 10];
+        moonUniforms.uRadius.value = radius;
+        moonUniforms.uEdge.value = 1.2 / radius;
+        moonUniforms.uLit.value = moonState.lit;
+        moonUniforms.uGlow.value = dark ? 1 : 0;
+        moonUniforms.uDark.value = dark ? 0.06 : 0.05;
+        const low = 0.2 + 0.8 * clamp01(m[2] / 0.2);
+        const overlap = rw > 0 && p[0] > rx - radius && p[0] < rx + rw + radius && p[1] > ry - radius && p[1] < ry + rh + radius ? scene.form : 0;
+        moonUniforms.uAlpha.value = low * (1 - overlap) * scene.presence * (dark ? 1 : 0.75);
+        moonMesh.visible = moonUniforms.uAlpha.value > 0.003;
+      }
+    }
+
+    // Satellites and shooting stars are nearer than the stars, so they move
+    // more with the scroll (as a share of the stars' own move since they
+    // appeared) and lean further toward the pointer.
+    tAlpha.fill(0);
+    tailAlpha.fill(0);
+    const quietSky = scene.form < 0.001;
+    if (!sat.on && time > sat.next && quietSky) sendSatellite(time);
+    if (sat.on) {
+      const t = (time - sat.t0) / sat.dur;
+      if (t >= 1) sat.on = false;
+      else {
+        const shift = (view.alt - sat.alt0) * RAD * view.S * 1.6;
+        tPos[0] = sat.x0 + (sat.x1 - sat.x0) * t + lean.x * 40;
+        tPos[1] = sat.y0 + (sat.y1 - sat.y0) * t + shift + lean.y * 25;
+        let a = clamp01(t * sat.dur / 1.5) * clamp01((1 - t) * sat.dur / 1.5);
+        if (sat.shadow > 0) a *= clamp01(1 - ((t - sat.shadow) * sat.dur) / 2.5);
+        tAlpha[0] = a * 0.6 * scene.presence * clamp01(1 - scene.form * 3) * (dark ? 1 : 0.7);
+        tSize[0] = 2.1;
+        tGlow[0] = 0;
+      }
+    }
+    if (time > nextMeteor) {
+      if (quietSky) fireMeteor(time);
+      nextMeteor = time + 20 + Math.random() * 20;
+    }
+    meteors.forEach((m, n) => {
+      if (!m.on) return;
+      const t = (time - m.t0) / m.dur;
+      if (t >= 1) {
+        m.on = false;
+        return;
+      }
+      const shift = (view.alt - m.alt0) * RAD * view.S * 2.5;
+      const along = m.len * Math.pow(t, 0.85);
+      const hxp = m.x + m.dx * along + lean.x * 64;
+      const hyp = m.y + m.dy * along + shift + lean.y * 40;
+      const tail = m.len * 0.4 * Math.min(1, t * 3);
+      const a = Math.pow(Math.sin(Math.PI * t), 0.6) * scene.presence * (dark ? 1 : 0.75);
+      tPos[(n + 1) * 3] = hxp;
+      tPos[(n + 1) * 3 + 1] = hyp;
+      tAlpha[n + 1] = a;
+      tSize[n + 1] = 2.4;
+      tGlow[n + 1] = dark ? 0.5 : 0;
+      tailPos[n * 6] = hxp;
+      tailPos[n * 6 + 1] = hyp;
+      tailPos[n * 6 + 3] = hxp - m.dx * tail;
+      tailPos[n * 6 + 4] = hyp - m.dy * tail;
+      tailAlpha[n * 2] = a;
+      tailAlpha[n * 2 + 1] = 0;
+    });
+
     // The outline lights up only once the stars have nearly gathered, over a
     // short stretch of `form`, and goes out early as they scatter. Its haze
     // comes in later than the tube and goes first, so the stars lead and the
@@ -568,21 +1167,31 @@ function create(): Scene | null {
     }
     uniforms.uOutlineAlpha.value = outlineAlpha;
     uniforms.uGlow.value = dark ? neon * neon * neon : 0;
-    uniforms.uLineAlpha.value = (dark ? 0.3 : 0.26) * scene.presence;
+    uniforms.uLineAlpha.value = (dark ? 0.32 : 0.28) * scene.presence;
     lines.attributes.position.needsUpdate = true;
     lines.attributes.aAlpha.needsUpdate = true;
+    tails.attributes.position.needsUpdate = true;
+    tails.attributes.aAlpha.needsUpdate = true;
+    transients.attributes.position.needsUpdate = true;
+    transients.attributes.aAlpha.needsUpdate = true;
+    transients.attributes.aSize.needsUpdate = true;
+    transients.attributes.aGlow.needsUpdate = true;
     points.attributes.position.needsUpdate = true;
     points.attributes.aAlpha.needsUpdate = true;
     points.attributes.aSize.needsUpdate = true;
     points.attributes.aKey.needsUpdate = true;
     points.attributes.aGlow.needsUpdate = true;
     renderer.render({ scene: root });
+    frameMs = frameMs * 0.9 + (performance.now() - started) * 0.1;
   }
 
+  bind(skyNow());
   gsap.ticker.add(frame);
   document.documentElement.classList.add('webgl');
   const quiet = document.body.dataset.sky === 'quiet';
   gsap.to(scene, { presence: quiet ? 0.35 : 1, duration: 1.6, ease: 'power2.out' });
+  startSkyLine(() => ({ moon: moonState, shower }));
+
   return scene;
 }
 
@@ -593,7 +1202,12 @@ export function getScene(): Promise<Scene | null> {
   if (!instance) {
     instance = new Promise((resolve) => {
       if (!motionOn) return resolve(null);
-      const start = (): void => resolve(create());
+      // The star data loads alongside the idle wait. Without it there is no
+      // sky to draw, and the page keeps its SVG fallbacks, as without WebGL.
+      const data = load();
+      const start = (): void => {
+        data.then((cat) => resolve(create(cat))).catch(() => resolve(null));
+      };
       if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(start, { timeout: 600 });
       else window.setTimeout(start, 200);
     });

@@ -35,6 +35,23 @@
     "ongoing": "berjalan",
     "pending": "tertunda"
   },
+  "sky": {
+    "line": "Langit Yogyakarta pukul {time} WIB, menghadap selatan.",
+    "timeSeparator": ".",
+    "phases": {
+      "new": "Bulan baru",
+      "waxingCrescent": "Bulan sabit muda",
+      "firstQuarter": "Bulan perbani awal",
+      "waxingGibbous": "Bulan cembung awal",
+      "full": "Bulan purnama",
+      "waningGibbous": "Bulan cembung akhir",
+      "lastQuarter": "Bulan perbani akhir",
+      "waningCrescent": "Bulan sabit tua"
+    },
+    "belowHorizon": "{moon} di bawah cakrawala",
+    "shower": "hujan meteor {name} sedang aktif",
+    "simulated": "(simulasi)"
+  },
   "common": {
     "source": "Source code",
     "website": "Situs",

@@ -101,6 +101,7 @@ const og = new URL(ogImagePath(lang, noindex ? '/' : path), site).href;
       <slot />
     </main>
     <Footer lang={lang} />
+    <p class="sky-line" data-sky-line={JSON.stringify(t.sky)} hidden></p>
     <script>
       import '../scripts/reveal';
       import '../motion/index';
