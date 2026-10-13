@@ -52,7 +52,9 @@ const links = [
     max-width: var(--w-wide);
     width: 100%;
     margin: 0 auto;
-    padding: 4rem var(--gutter) 2rem;
+    /* The sky line sits fixed in the bottom corner, so the footer ends above
+       it. `--sky-line-space` is its height, set while it shows. */
+    padding: 4rem var(--gutter) calc(2rem + var(--sky-line-space, 0px));
     font-size: 0.9rem;
     color: var(--text-dim);
   }

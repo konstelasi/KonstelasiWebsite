@@ -54,4 +54,12 @@ export function startSkyLine(read: () => { moon: Moon | null; shower: Shower | n
   write();
   el.hidden = false;
   window.setInterval(write, 1000);
+
+  // The footer ends above the line, so the line never covers its links at
+  // the bottom of the page. The line wraps on phones, so follow its height.
+  const space = (): void => {
+    document.documentElement.style.setProperty('--sky-line-space', `${el.offsetHeight + 8}px`);
+  };
+  space();
+  new ResizeObserver(space).observe(el);
 }
