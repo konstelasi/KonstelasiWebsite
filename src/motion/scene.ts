@@ -26,7 +26,6 @@
 import { Renderer, Geometry, Program, Mesh, Transform } from 'ogl';
 import { gsap, motionOn, finePointer } from './core';
 import { fitRect, type Shape } from './shapes';
-import starsUrl from './sky/stars.bin?url';
 import skyUrl from './sky/sky.json?url';
 import { decode, type Catalogue, type SkyData } from './sky/catalogue';
 import { RAD, altAz, horizonAlt, sidereal, toLocal } from './sky/astro';
@@ -255,11 +254,9 @@ function hexToRgb(hex: string): [number, number, number] {
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 async function load(): Promise<Catalogue> {
-  const [bin, data] = await Promise.all([
-    fetch(starsUrl).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('stars')))),
-    fetch(skyUrl).then((r) => (r.ok ? (r.json() as Promise<SkyData>) : Promise.reject(new Error('sky')))),
-  ]);
-  return decode(bin, data);
+  const res = await fetch(skyUrl);
+  if (!res.ok) throw new Error(`sky data answered ${res.status}`);
+  return decode((await res.json()) as SkyData);
 }
 
 function create(cat: Catalogue): Scene | null {

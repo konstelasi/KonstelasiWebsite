@@ -1,7 +1,7 @@
 /**
  * The star catalogue and constellation figures made by `scripts/gen-sky.ts`,
- * decoded. No DOM here: the scene fetches the two files and hands their
- * contents over, and `scripts/verify-sky.ts` reads them from disk.
+ * decoded. No DOM here: the scene fetches `sky.json` and hands it over, and
+ * `scripts/verify-sky.ts` reads it from disk.
  */
 
 export interface Figure {
@@ -14,7 +14,9 @@ export interface Figure {
 
 export interface SkyData {
   epoch: number;
-  stars: number;
+  count: number;
+  /** 5 bytes a star, base64: RA as uint16, Dec as int16, magnitude times ten as int8. */
+  stars: string;
   figures: Figure[];
 }
 
@@ -30,9 +32,12 @@ export interface Catalogue {
   figuresOf: Map<number, number[]>;
 }
 
-export function decode(bin: ArrayBuffer, data: SkyData): Catalogue {
-  const view = new DataView(bin);
-  const count = Math.floor(bin.byteLength / 5);
+export function decode(data: SkyData): Catalogue {
+  const raw = atob(data.stars);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  const view = new DataView(bytes.buffer);
+  const count = Math.floor(bytes.length / 5);
   const ra = new Float32Array(count);
   const dec = new Float32Array(count);
   const mag = new Float32Array(count);

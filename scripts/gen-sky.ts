@@ -12,9 +12,11 @@
  * so the sky is right to well under a tenth of a degree for decades. The
  * runtime only has to turn them into altitude and azimuth.
  *
- * Writes `src/motion/sky/stars.bin` (5 bytes a star, brightest first) and
- * `src/motion/sky/sky.json` (the epoch and the figures). Both are committed,
- * so this only runs when the data should change. Run with `npm run gen:sky`.
+ * Writes `src/motion/sky/sky.json`: the epoch, the figures, and the stars
+ * packed 5 bytes a star, brightest first, as base64. The packing keeps the
+ * file small, and plain JSON keeps download managers from grabbing it the
+ * way they grab a `.bin` file. It is committed, so this only runs when the
+ * data should change. Run with `npm run gen:sky`.
  */
 
 import { writeFileSync } from 'node:fs';
@@ -168,8 +170,7 @@ stars.forEach((s, i) => {
   out.writeInt8(Math.max(-128, Math.min(127, Math.round(s.mag * 10))), i * 5 + 4);
 });
 
-writeFileSync('src/motion/sky/stars.bin', out);
-writeFileSync('src/motion/sky/sky.json', JSON.stringify({ epoch: EPOCH, stars: stars.length, figures }) + '\n');
+writeFileSync('src/motion/sky/sky.json', JSON.stringify({ epoch: EPOCH, count: stars.length, stars: out.toString('base64'), figures }) + '\n');
 const edgeCount = figures.reduce((n, f) => n + f.edges.length, 0);
 console.log(`wrote ${stars.length} stars and ${figures.length} figures with ${edgeCount} lines`);
 if (missed) console.log(`${missed} line segments had an end with no catalogue star within ${SNAP}°, and were left out`);

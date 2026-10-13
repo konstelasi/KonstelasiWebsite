@@ -7,7 +7,7 @@
  * 110.37° E). The star references come from Astronomy Engine 2.1.19 for the
  * same place. Each check compares directions, so it fails when a body is more
  * than half a degree off, wherever it is in the sky. Stars are read from the
- * committed `stars.bin`, so a broken generator fails here too.
+ * committed `sky.json`, so a broken generator fails here too.
  *
  * Run with `npm run verify:sky`.
  */
@@ -68,9 +68,8 @@ for (const [jd, maz, malt, lit, saz, salt] of bodies) {
 }
 
 const root = new URL('../src/motion/sky/', import.meta.url);
-const bin = readFileSync(new URL('stars.bin', root));
 const data = JSON.parse(readFileSync(new URL('sky.json', root), 'utf8')) as SkyData;
-const catalogue = decode(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength), data);
+const catalogue = decode(data);
 for (const [name, raH, dec0, refs] of stars) {
   // The brightest catalogue star within a degree of its J2000 place.
   let index = -1;
@@ -80,7 +79,7 @@ for (const [name, raH, dec0, refs] of stars) {
   }
   if (index < 0) {
     failed = true;
-    console.error(`  FAIL ${name} is missing from stars.bin`);
+    console.error(`  FAIL ${name} is missing from sky.json`);
     continue;
   }
   for (const [jd, az, alt] of refs) {
