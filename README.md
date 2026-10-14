@@ -38,7 +38,7 @@ Link preview images are drawn at build time by `src/pages/og/[lang]/[name].png.t
 
 ## Motion
 
-The site is built around one idea, a living constellation. A WebGL star field sits behind every page, and it's the real sky over Yogyakarta at this moment, facing south. Scrolling tilts the view from near the zenith down to the southern horizon. Two or three constellations in view are drawn in with their names, the Moon shows at its real place and phase when it's in that part of the sky, and satellites and shooting stars cross in front. During a meteor shower, most shooting stars fly out from its radiant. A line in the bottom-left corner says which sky is showing.
+The site is built around one idea, a living constellation. A WebGL star field sits behind every page, and it's the real sky over Yogyakarta at this moment, facing south. Scrolling tilts the view from near the zenith down to the southern horizon, and on the next page the view glides back from where you left it. Two or three constellations in view are drawn in with their names, the Moon shows at its real place and phase when it's in that part of the sky, and satellites and shooting stars cross in front. During a meteor shower, most shooting stars fly out from its radiant. A line in the bottom-left corner says which sky is showing.
 
 On the home page the stars assemble into the Konstelasi mark, break apart as you scroll, and regroup into the services system while that section is pinned. The 404 page draws its number in stars that scatter from the pointer. Either way, every star returns to its real place afterwards.
 

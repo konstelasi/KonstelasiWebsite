@@ -8,7 +8,9 @@
  * constellations in view are drawn in, line by line, with their names. The
  * Moon sits at its real place and phase. Satellites and shooting stars cross
  * in front, and being nearer, they move more with the scroll and the pointer
- * than the stars do.
+ * than the stars do. A page hands its tilt and figures to the next one, so
+ * the camera glides from where the last page left it and the figures still
+ * in view stay drawn.
  *
  * A page can ask the sky to assemble into a shape (`assemble`) fitted into an
  * element, and to let it go again. `form`, from 0 (sky) to 1 (shape), is a
@@ -205,6 +207,36 @@ const MAX_TILT = 6;
 /** Highlighted constellations at once, on wide screens and on phones. */
 const FIGURES_WIDE = 3;
 const FIGURES_NARROW = 2;
+/** Seconds the camera takes to glide from the last page's tilt to this page's. */
+const GLIDE = 1.4;
+/** How long a page's handoff stays good, in milliseconds. */
+const HANDOFF_LIFE = 10000;
+const HANDOFF_KEY = 'sky-handoff';
+
+/**
+ * What a page hands the next one, so the sky carries on across a page change
+ * instead of starting over: the camera's tilt and the highlighted figures,
+ * by name.
+ */
+interface Handoff {
+  at: number;
+  alt: number;
+  figures: string[];
+}
+
+/** The last page's handoff, read once. Storage can be blocked, and then the sky simply starts fresh. */
+function takeHandoff(): Handoff | null {
+  try {
+    const raw = window.sessionStorage.getItem(HANDOFF_KEY);
+    window.sessionStorage.removeItem(HANDOFF_KEY);
+    if (!raw) return null;
+    const h = JSON.parse(raw) as Handoff;
+    if (!(Date.now() - h.at < HANDOFF_LIFE) || !Number.isFinite(h.alt) || !Array.isArray(h.figures)) return null;
+    return h;
+  } catch {
+    return null;
+  }
+}
 
 type Anchor = Element | (() => DOMRect);
 
@@ -480,11 +512,24 @@ function create(cat: Catalogue): Scene | null {
     return true;
   }
 
+  // Coming from another page, the camera starts at that page's tilt and
+  // glides to this one's, so the sky moves instead of jumping. The offset is
+  // taken on the first frame and eases to 0, so scrolling during the glide
+  // still steers it.
+  const handoff = takeHandoff();
+  const glide = { from: handoff && clock.alt === null ? handoff.alt : NaN, offset: 0, t0: -1 };
+
   /** The camera's tilt from the scroll, unless the URL pinned it. */
-  function tilt(scroll: number): void {
+  function tilt(scroll: number, time: number): void {
     const range = view.top - view.low;
     const progress = Math.min(1, scroll / Math.max(1, docHeight - view.H));
-    view.alt = clock.alt ?? view.top - Math.min(range * progress, (MAX_TILT * scroll) / view.H);
+    const alt = clock.alt ?? view.top - Math.min(range * progress, (MAX_TILT * scroll) / view.H);
+    if (glide.t0 < 0 && Number.isFinite(glide.from)) {
+      glide.t0 = time;
+      glide.offset = Math.min(view.top, Math.max(view.low, glide.from)) - alt;
+    }
+    const k = glide.t0 < 0 ? 1 : (time - glide.t0) / GLIDE;
+    view.alt = k >= 1 ? alt : alt + glide.offset * (1 - k * k * (3 - 2 * k));
   }
 
   /**
@@ -653,6 +698,9 @@ function create(cat: Catalogue): Scene | null {
   const cooldown = new Map<number, number>();
   let showAll = false;
   let lastPick = -10;
+  // The figures the last page had drawn. Those still in view stay, already
+  // drawn, so a page change doesn't draw them again.
+  let carried: number[] | null = handoff ? handoff.figures.map((n) => cat.figures.findIndex((f) => f.name === n)).filter((k) => k >= 0) : null;
 
   function label(k: number): HTMLSpanElement {
     const el = document.createElement('span');
@@ -694,6 +742,13 @@ function create(cat: Catalogue): Scene | null {
   function pickFigures(time: number): void {
     lastPick = time;
     const max = view.W >= 900 ? FIGURES_WIDE : FIGURES_NARROW;
+    if (carried) {
+      for (const k of carried.slice(0, max)) {
+        const m = measureFigure(k);
+        if (m.all && m.frac >= 0.6) chosen.push({ k, draw: 1, alpha: 1, leaving: false, score: 0, frac: m.frac, label: label(k), clear: 0, blocked: true });
+      }
+      carried = null;
+    }
     const boxes: Array<[number, number, number, number]> = [];
     for (const c of chosen) {
       if (c.leaving) continue;
@@ -917,7 +972,7 @@ function create(cat: Catalogue): Scene | null {
     lean.x += (pointer.x - lean.x) * 0.05;
     lean.y += (pointer.y - lean.y) * 0.05;
 
-    tilt(scroll);
+    tilt(scroll, time);
     const sa = Math.sin(view.alt * RAD);
     const ca = Math.cos(view.alt * RAD);
 
@@ -1261,7 +1316,21 @@ function create(cat: Catalogue): Scene | null {
   gsap.ticker.add(frame);
   document.documentElement.classList.add('webgl');
   const quiet = document.body.dataset.sky === 'quiet';
-  gsap.to(scene, { presence: quiet ? 0.35 : 1, duration: 1.6, ease: 'power2.out' });
+  // A sky that carries on from the last page comes back quickly, since the
+  // page change only faded it for a moment.
+  gsap.to(scene, { presence: quiet ? 0.35 : 1, duration: handoff ? 0.6 : 1.6, ease: 'power2.out' });
+  window.addEventListener('pagehide', () => {
+    const h: Handoff = {
+      at: Date.now(),
+      alt: view.alt,
+      figures: chosen.filter((c) => !c.leaving && c.draw >= 1).map((c) => cat.figures[c.k].name),
+    };
+    try {
+      window.sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(h));
+    } catch {
+      // Storage is blocked, so the next page starts its sky fresh.
+    }
+  });
   startSkyLine(() => ({ moon: moonState, shower }));
 
   if (clock.debug) {
