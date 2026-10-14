@@ -61,6 +61,8 @@ Most of what the sky shows depends on the hour, so these URL switches take contr
 
 With the panel open, `[` and `]` step time by an hour, `,` and `.` by a day, and `0` returns to now. `M` jumps to the next time the Moon is in view. `S` fires a shooting star and `T` sends a satellite. `G` draws a grid of altitude and azimuth with the horizon and the meridian, and `L` draws every constellation in view. To check the result against Stellarium, set Stellarium to Yogyakarta and the panel's time, and face south.
 
+For scripted checks, `?sky-debug=hooks` skips the panel and puts the same controls on `window.skyHooks`. Its `snapshot()` lists every star's catalogue position and where it is drawn, plus the constellation lines and names, so a headless browser can compare the screen with an independent calculation.
+
 ## Blog
 
 Posts are written in the blog admin at blog.konstelasi.co.id, whose code is `KonstelasiBlog/`, a separate repository. The index is at `/blog/` and each post at `/blog/<slug>/`, with the Indonesian pages under `/id/blog/`. Every post has both languages, because every page on the site exists in both. Each language has an RSS feed, `/blog/rss.xml` and `/id/blog/rss.xml`, which the old WordPress feed addresses redirect to.

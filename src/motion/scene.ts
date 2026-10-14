@@ -245,6 +245,16 @@ export interface SkyHooks {
   setShowAll(on: boolean): void;
   /** Call after moving the clock, so the sky catches up at once. */
   refresh(): void;
+  /**
+   * What is drawn this frame, for checking the sky against an independent
+   * calculation: every bound star's catalogue place and screen position, the
+   * constellation lines with the stars they join, and the names.
+   */
+  snapshot(): {
+    stars: Array<{ ra: number; dec: number; mag: number; x: number; y: number; alpha: number; inShape: number }>;
+    lines: Array<{ figure: string; a: [number, number]; b: [number, number]; x1: number; y1: number; x2: number; y2: number; alpha: number }>;
+    labels: Array<{ name: string; x: number; y: number; opacity: number }>;
+  };
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -889,6 +899,7 @@ function create(cat: Catalogue): Scene | null {
   }
 
   let frameCount = 0;
+  let drawnSegs = 0;
   let lastTime = 0;
   let lastSky = -10;
   let lastBindTime = 0;
@@ -1108,6 +1119,7 @@ function create(cat: Catalogue): Scene | null {
       }
     }
     lines.setDrawRange(0, seg * 2);
+    drawnSegs = seg;
 
     // The Moon, at its real place and phase, a few times its true size so
     // the phase reads. It never joins a shape, and steps aside for one.
@@ -1294,6 +1306,56 @@ function create(cat: Catalogue): Scene | null {
         for (const c of chosen) c.leaving = true;
         cooldown.clear();
         lastPick = -10;
+      },
+      snapshot() {
+        const stars = [];
+        for (let i = 0; i < N; i++) {
+          const s = star[i];
+          if (s < 0) continue;
+          stars.push({ ra: cat.ra[s], dec: cat.dec[s], mag: cat.mag[s], x: skyPx[i], y: skyPy[i], alpha: alpha[i], inShape: joined[i] });
+        }
+        const lines = [];
+        for (const c of chosen) {
+          for (const [a, b] of ordered[c.k]) {
+            const pa = particleOf[a];
+            const pb = particleOf[b];
+            if (pa < 0 || pb < 0) continue;
+            // The drawn segment for this edge, found by its start point.
+            let alphaHere = 0;
+            let x2 = position[pb * 3];
+            let y2 = position[pb * 3 + 1];
+            for (let k = 0; k < drawnSegs; k++) {
+              if (linePos[k * 6] === position[pa * 3] && linePos[k * 6 + 1] === position[pa * 3 + 1]) {
+                const ex = linePos[k * 6 + 3];
+                const ey = linePos[k * 6 + 4];
+                // Several edges can start at one star, so match the direction too.
+                const d1 = Math.atan2(ey - linePos[k * 6 + 1], ex - linePos[k * 6]);
+                const d2 = Math.atan2(position[pb * 3 + 1] - position[pa * 3 + 1], position[pb * 3] - position[pa * 3]);
+                if (Math.abs(Math.sin(d1 - d2)) < 1e-3 && Math.cos(d1 - d2) > 0) {
+                  alphaHere = lineAlpha[k * 2];
+                  x2 = ex;
+                  y2 = ey;
+                  break;
+                }
+              }
+            }
+            lines.push({
+              figure: cat.figures[c.k].name,
+              a: [cat.ra[a], cat.dec[a]] as [number, number],
+              b: [cat.ra[b], cat.dec[b]] as [number, number],
+              x1: position[pa * 3],
+              y1: position[pa * 3 + 1],
+              x2,
+              y2,
+              alpha: alphaHere * uniforms.uLineAlpha.value,
+            });
+          }
+        }
+        const labels = chosen.map((c) => {
+          const m = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(c.label.style.transform);
+          return { name: cat.figures[c.k].name, x: m ? Number(m[1]) : NaN, y: m ? Number(m[2]) : NaN, opacity: Number(c.label.style.opacity || 0) };
+        });
+        return { stars, lines, labels };
       },
     };
     void import('./sky/debug').then((m) => m.openDebug(hooks));

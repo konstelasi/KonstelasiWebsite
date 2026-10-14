@@ -18,6 +18,11 @@ import { clock, resetClock, setSkyTime, skyNow, wibTime } from './clock';
 const HOUR = 3600000;
 
 export function openDebug(hooks: SkyHooks): void {
+  // Scripts that inspect the sky (a headless browser, the console) find the
+  // hooks here. `?sky-debug=hooks` exposes them without the panel, for clean
+  // screenshots.
+  (window as unknown as { skyHooks: SkyHooks }).skyHooks = hooks;
+  if (new URLSearchParams(window.location.search).get('sky-debug') === 'hooks') return;
   const panel = document.createElement('pre');
   panel.setAttribute('aria-hidden', 'true');
   Object.assign(panel.style, {
