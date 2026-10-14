@@ -717,9 +717,19 @@ function create(cat: Catalogue): Scene | null {
     for (const c of candidates) {
       if (!showAll) {
         if (active >= max) break;
-        // Keep the highlighted figures apart, so each reads on its own.
+        // A faint, little-known figure (rank 3) only when nothing better is
+        // showing, so the sky never fills its places with obscure ones.
+        if (cat.figures[c.k].rank >= 3 && active > 0) continue;
+        // Keep the highlighted figures apart, so each reads on its own. Boxes
+        // may touch a little, since neighbouring figures often share an edge.
         const [x0, y0, x1, y1] = c.box;
-        if (boxes.some(([a0, b0, a1, b1]) => x0 < a1 + 30 && x1 > a0 - 30 && y0 < b1 + 30 && y1 > b0 - 30)) continue;
+        const area = (x1 - x0) * (y1 - y0);
+        const clash = boxes.some(([a0, b0, a1, b1]) => {
+          const ix = Math.max(0, Math.min(x1, a1) - Math.max(x0, a0));
+          const iy = Math.max(0, Math.min(y1, b1) - Math.max(y0, b0));
+          return ix * iy > 0.25 * Math.min(area, (a1 - a0) * (b1 - b0));
+        });
+        if (clash) continue;
         boxes.push(c.box);
       }
       const old = chosen.find((o) => o.k === c.k);
@@ -863,13 +873,17 @@ function create(cat: Catalogue): Scene | null {
 
   const ease = (t: number): number => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3));
 
-  // Whether page text sits at a point or either side of it. The sky's own
-  // layers take no pointer events, so the hit test sees the page above them.
+  // Whether page text sits on or right next to a label whose top edge is at
+  // `y`: its top, middle and bottom rows, across its width and a little
+  // beyond. The sky's own layers take no pointer events, so the hit test
+  // sees the page above them.
   const TEXTY = 'h1,h2,h3,h4,h5,h6,p,li,a,button,summary,label,figcaption,blockquote,dt,dd,pre,code,table,figure,svg,img,input,textarea,select,details';
   function overText(x: number, y: number, half: number): boolean {
-    for (const px of [x - half, x, x + half]) {
-      const el = document.elementFromPoint(px, y);
-      if (el && el.closest(TEXTY)) return true;
+    for (const py of [y - 4, y + 5, y + 15]) {
+      for (const px of [x - half, x, x + half]) {
+        const el = document.elementFromPoint(px, py);
+        if (el && el.closest(TEXTY)) return true;
+      }
     }
     return false;
   }
@@ -1086,7 +1100,7 @@ function create(cat: Catalogue): Scene | null {
       if (lx0 < Infinity) {
         const x = Math.min(W - 48, Math.max(48, (lx0 + lx1) / 2));
         const y = Math.min(H - 48, Math.max(16, ly1 + 16));
-        if (checkText) c.blocked = overText(x, y + 5, c.label.offsetWidth / 2 + 6);
+        if (checkText) c.blocked = overText(x, y, c.label.offsetWidth / 2 + 6);
         c.clear += ((c.blocked ? 0 : 1) - c.clear) * 0.15;
         const o = c.alpha * clamp01(c.draw * 2 - 1) * shown * c.clear * scene.presence * 0.9;
         c.label.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translateX(-50%)`;
