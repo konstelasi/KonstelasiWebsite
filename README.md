@@ -109,7 +109,7 @@ The blog kept its `/blog/` address and its post slugs. WordPress put the date in
 
 ## Deploying
 
-`deploy.sh` builds the site, runs the four `verify:` checks on the result, uploads it over SSH and unpacks it on the host. It reads the host, port, user and key from a `konstelasi` alias in your own `~/.ssh/config`, so no credential lives in this repository.
+`deploy.sh` builds the site, runs the five `verify:` checks, uploads it over SSH and unpacks it on the host. It reads the host, port, user and key from a `konstelasi` alias in your own `~/.ssh/config`, so no credential lives in this repository.
 
 ```bash
 bash deploy.sh          # production: public_html, the main domain's document root

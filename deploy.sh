@@ -78,12 +78,14 @@ if [ ! -d dist ]; then
 fi
 
 # The same checks the project asks for, so a broken link, a dash in the copy,
-# a low contrast pair or an over-budget page never reaches the host.
+# a low contrast pair, an over-budget page or a sky drawn in the wrong place
+# never reaches the host.
 echo "==> Verifying..."
 npm run verify:copy
 npm run verify:contrast
 npm run verify:links
 npm run verify:budget
+npm run verify:sky
 
 if [ "$TARGET" = "staging" ]; then
   # Keep the staging copy out of search engines. The real robots.txt only
