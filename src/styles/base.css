@@ -213,3 +213,41 @@ main,
   position: relative;
   z-index: 1;
 }
+
+/* Constellation names, placed by the scene each frame. They sit with the
+   sky, under the page content. */
+.sky-labels {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sky-labels span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 400 0.68rem/1 var(--mono);
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+/* What the sky is showing, in the bottom-left corner. It sits over the page
+   content, so it carries a backing of the page colour to stay readable. */
+.sky-line {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 5;
+  max-width: min(50rem, calc(100vw - 32px));
+  margin: 0;
+  padding: 0.3rem 0.55rem;
+  font: 400 0.7rem/1.45 var(--mono);
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.sky-line[hidden] { display: none; }

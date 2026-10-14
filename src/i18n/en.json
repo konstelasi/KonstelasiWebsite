@@ -35,6 +35,23 @@
     "ongoing": "ongoing",
     "pending": "pending"
   },
+  "sky": {
+    "line": "Sky over Yogyakarta at {time} WIB, facing south.",
+    "timeSeparator": ":",
+    "phases": {
+      "new": "New Moon",
+      "waxingCrescent": "Waxing crescent Moon",
+      "firstQuarter": "First quarter Moon",
+      "waxingGibbous": "Waxing gibbous Moon",
+      "full": "Full Moon",
+      "waningGibbous": "Waning gibbous Moon",
+      "lastQuarter": "Last quarter Moon",
+      "waningCrescent": "Waning crescent Moon"
+    },
+    "belowHorizon": "{moon} below the horizon",
+    "shower": "{name} active",
+    "simulated": "(simulated)"
+  },
   "common": {
     "source": "Source",
     "website": "Website",
