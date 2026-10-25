@@ -127,6 +127,14 @@ const links = [
   @media (max-width: 40rem) {
     address { justify-items: start; }
     .legal { margin-left: 0; }
-    .tagline { display: none; }
+    /* The tagline drops to its own line under the name, since beside it
+       there is no room on a narrow phone. */
+    .mark { flex-wrap: wrap; }
+    .tagline {
+      flex-basis: 100%;
+      margin-left: 0;
+      padding-left: 0;
+      border-left: 0;
+    }
   }
 </style>
