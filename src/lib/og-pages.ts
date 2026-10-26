@@ -1,4 +1,4 @@
-import { type Lang, langs } from '../i18n';
+import { type Lang, langs, ui } from '../i18n';
 import { entriesIn, slugOf } from './content';
 import { staticPages } from './pages';
 import { ogName } from './og';
@@ -20,7 +20,10 @@ export async function ogPages(): Promise<OgPage[]> {
   const pages: OgPage[] = [];
   for (const lang of langs) {
     for (const [path, meta] of Object.entries(staticPages)) {
-      pages.push({ lang, name: ogName(path), title: meta[lang].title, subtitle: meta[lang].description });
+      // The card already names Konstelasi beside the logo, so the home card
+      // leads with the tagline alone.
+      const title = path === '/' ? ui(lang).site.tagline : meta[lang].title;
+      pages.push({ lang, name: ogName(path), title, subtitle: meta[lang].description });
     }
     for (const p of await entriesIn('products', lang)) {
       pages.push({ lang, name: ogName(`/software/${slugOf(p)}/`), title: p.data.name, subtitle: p.data.summary });
