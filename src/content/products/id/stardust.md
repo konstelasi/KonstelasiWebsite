@@ -36,6 +36,7 @@ Kalau index sebuah field belum siap, atau kapasitas slot sedang menipis, proses 
 - Dua belas operator filter dengan AND, OR, dan NOT, semuanya dikompilasi menjadi SQL yang memakai index.
 - Setiap query dibatasi per tenant langsung di level SQL.
 - Worker latar belakang yang menyiapkan kapasitas index, mengisi field baru, mengambil kembali slot yang kosong, dan mengalirkan ekspor data. Tidak ada yang perlu menyetel skema dengan tangan.
+- Bisa berjalan di shared hosting. Kalau host hanya mengizinkan cron job, tanpa proses yang terus berjalan, `bin/stardust tick` mengerjakan hal yang sama dalam satu putaran berbatas waktu.
 - Pagination berbasis cursor, dirancang untuk data yang terlalu besar untuk dipaging dengan offset.
 - MySQL 8.0.13 ke atas, Percona Server, dan MariaDB 10.11 ke atas. Engine mengenali database yang dipakai dan langsung menolak versi yang lebih lama saat startup.
 
