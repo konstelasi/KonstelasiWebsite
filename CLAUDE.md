@@ -34,7 +34,7 @@ The site is meant to be bold and alive, a "living constellation": a WebGL star f
 
 - **Motion explains.** Data moves along the line it would really travel, shapes assemble into what they represent, problems strike through as the solution arrives.
 - **One lead per view.** Several things may move at once, but each viewport has one lead motion and everything else supports it. Don't add a second lead to a section that has one.
-- **Fallbacks are mandatory.** Every animation has a reduced-motion final state and a no-JS fallback, and no information exists only in motion. The SVG and CSS versions (hero constellation, clickable system diagram, CSS diagram reveal, slot loop) are the fallbacks, so keep them working.
+- **Fallbacks are mandatory.** Every animation has a reduced-motion final state and a no-JS fallback, and no information exists only in motion. The SVG and CSS versions (hero constellation, clickable system diagram, CSS diagram reveal, the end state of the home stack) are the fallbacks, so keep them working.
 - **Budget.** Home pages at most 160 KB of gzipped JS, other pages at most 110 KB. `npm run verify:budget` enforces it on `dist/`.
 
 How it's built:

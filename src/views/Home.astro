@@ -3,7 +3,7 @@ import { Icon } from 'astro-icon/components';
 import Base from '../layouts/Base.astro';
 import Constellation from '../components/home/Constellation.astro';
 import ServiceSystem from '../components/home/ServiceSystem.astro';
-import SlotDemo from '../components/home/SlotDemo.astro';
+import StackDemo from '../components/home/StackDemo.astro';
 import ProductOrbit from '../components/home/ProductOrbit.astro';
 import { NODES, GROUND } from '../components/home/system-shape';
 import Status from '../components/Status.astro';
@@ -35,9 +35,7 @@ const copy = {
     labTitle: 'Made in our lab',
     labLede: 'Open-source software we design ourselves, use in client work and maintain in public.',
     spotlightTitle: 'A closer look at StarDust',
-    spotlightLede: 'Letting every user add their own fields, and still filter on them quickly, often means running extra servers. StarDust needs only PHP and MySQL, so a shared hosting account is enough.',
-    demoLabel: 'An animation of a StarDust write. The value "software" is copied from the JSON payload into the indexed slot column i_str_01, the value 120 into i_num_01, and the new row is marked as indexed.',
-    indexed: 'indexed',
+    spotlightLede: 'Letting every user add their own fields, and still filter on them quickly, often means running extra servers. StarDust needs only PHP, MySQL and one cron job, so a shared hosting account is enough.',
     stardustMore: 'How StarDust works',
     workTitle: 'How we work',
     work: [
@@ -71,9 +69,7 @@ const copy = {
     labTitle: 'Dibuat di lab kami',
     labLede: 'Software open source yang kami rancang sendiri, kami pakai di proyek klien, dan kami rawat secara terbuka.',
     spotlightTitle: 'Lebih dekat dengan StarDust',
-    spotlightLede: 'Field yang bisa ditambah sendiri oleh setiap pengguna, dan tetap cepat difilter, sering kali berarti harus menjalankan server tambahan. StarDust hanya butuh PHP dan MySQL, jadi akun shared hosting pun sudah cukup.',
-    demoLabel: 'Animasi proses tulis di StarDust. Nilai "software" disalin dari payload JSON ke kolom slot ber-index i_str_01, nilai 120 ke i_num_01, lalu baris barunya ditandai sudah ter-index.',
-    indexed: 'ter-index',
+    spotlightLede: 'Field yang bisa ditambah sendiri oleh setiap pengguna, dan tetap cepat difilter, sering kali berarti harus menjalankan server tambahan. StarDust hanya butuh PHP, MySQL, dan satu cron job, jadi akun shared hosting pun sudah cukup.',
     stardustMore: 'Cara kerja StarDust',
     workTitle: 'Cara kami bekerja',
     work: [
@@ -172,7 +168,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
             <Icon name="lucide:arrow-right" aria-hidden="true" />
           </a>
         </div>
-        <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
+        <StackDemo lang={lang} />
       </article>
     </div>
   </section>

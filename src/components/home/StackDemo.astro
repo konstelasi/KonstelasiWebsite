@@ -1,0 +1,150 @@
+---
+/**
+ * What it usually takes to let every user add fields they can filter on,
+ * drawn as a stack of layers, and what StarDust leaves of it. As the stack
+ * scrolls through the view (stack-motion.ts), the layers StarDust makes
+ * unnecessary are struck through one by one and flatten, so the stack gets
+ * lower, and the database at the bottom becomes the shared hosting account
+ * that is enough. The strike is the same violet line as on the service
+ * pages.
+ *
+ * Without motion the stack shows its end state, with every struck layer
+ * still readable. In scroll mode a hidden copy of the standing stack holds
+ * the height, so the page below doesn't move as the stack gets lower.
+ */
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const l = {
+  en: {
+    gone: ['A server you manage', 'Worker processes, always on', 'Search cluster'],
+    base: 'Database',
+    enough: 'Shared hosting with PHP, MySQL and one cron job',
+    label: 'Letting every user add fields they can filter on usually takes a server you manage, worker processes that are always on, a search cluster and a database. With StarDust, shared hosting with PHP, MySQL and one cron job is enough.',
+  },
+  id: {
+    gone: ['Server yang harus Anda kelola', 'Proses worker yang selalu berjalan', 'Search cluster'],
+    base: 'Database',
+    enough: 'Shared hosting dengan PHP, MySQL, dan satu cron job',
+    label: 'Agar setiap pengguna bisa menambah field yang tetap bisa difilter, biasanya dibutuhkan server yang harus Anda kelola, proses worker yang selalu berjalan, search cluster, dan database. Dengan StarDust, shared hosting dengan PHP, MySQL, dan satu cron job sudah cukup.',
+  },
+}[lang];
+---
+
+<div class="stack" role="img" aria-label={l.label} data-stack>
+  <ol class="layers">
+    {l.gone.map((g) => <li class="layer gone"><span>{g}</span></li>)}
+    <li class="layer base">
+      <span class="before">{l.base}</span>
+      <span class="after">{l.enough}</span>
+    </li>
+  </ol>
+  <ol class="layers ghost">
+    {l.gone.map((g) => <li class="layer"><span>{g}</span></li>)}
+    <li class="layer base">
+      <span>{l.base}</span>
+      <span>{l.enough}</span>
+    </li>
+  </ol>
+</div>
+
+<script>
+  import './stack-motion';
+</script>
+
+<style>
+  .stack {
+    display: grid;
+    width: 100%;
+    max-width: 30rem;
+    justify-self: center;
+    padding-left: 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+  .stack > .layers {
+    grid-area: 1 / 1;
+    align-self: end;
+  }
+  .ghost { display: none; visibility: hidden; }
+  .stack[data-mode='scroll'] .ghost { display: block; }
+
+  .layers { position: relative; list-style: none; }
+  /* A bracket down the left side, as tall as the stack, so its height reads
+     as a measure that drops with it. */
+  .layers::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 -1.25rem;
+    width: 0.45rem;
+    border: 1px solid var(--border-hover);
+    border-right: 0;
+  }
+
+  .layer {
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-raised);
+    transition:
+      padding 0.5s var(--ease),
+      margin 0.5s var(--ease),
+      border-color 0.4s var(--ease),
+      background-color 0.4s var(--ease),
+      color 0.4s var(--ease);
+  }
+  .layer + .layer { margin-top: 0.5rem; }
+
+  /* Struck and flattened, the end state. The line is a background, as on the
+     service pages, so it can draw across. The box waits for the strike
+     before it flattens. */
+  .gone {
+    padding-block: 0.1rem;
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--text-faint);
+    transition-delay: 0.3s;
+  }
+  .gone + .gone { margin-top: 0.15rem; }
+  .gone span {
+    background: linear-gradient(var(--brand), var(--brand)) no-repeat 0 55% / 100% 1.5px;
+    transition: background-size 0.5s var(--ease-out);
+  }
+
+  /* Standing, before the scroll reaches a layer. Going back, the box stands
+     up first and the strike pulls back after it. */
+  .stack[data-mode='scroll'] .gone:not(.out) {
+    padding-block: 0.7rem;
+    border-color: var(--border-bright);
+    background-color: var(--bg-raised);
+    color: var(--text);
+    transition-delay: 0s;
+  }
+  .stack[data-mode='scroll'] .gone + .gone:not(.out) { margin-top: 0.5rem; }
+  .stack[data-mode='scroll'] .gone:not(.out) span {
+    background-size: 0% 1.5px;
+    transition-delay: 0.3s;
+  }
+
+  /* What is left, on the one violet line of the diagram. */
+  .base {
+    display: grid;
+    border-color: var(--brand);
+    background-color: var(--brand-soft);
+  }
+  .base > span {
+    grid-area: 1 / 1;
+    transition: opacity 0.35s var(--ease);
+  }
+  .base .before { opacity: 0; }
+  .stack[data-mode='scroll'] .base:not(.done) {
+    border-color: var(--border-bright);
+    background-color: var(--bg-raised);
+  }
+  .stack[data-mode='scroll'] .base:not(.done) .before { opacity: 1; }
+  .stack[data-mode='scroll'] .base:not(.done) .after { opacity: 0; }
+</style>
