@@ -17,7 +17,7 @@ cases:
   heading: Hasilnya terlihat di sini
   items:
     - title: Dashboard web yang cepat
-      text: Dashboard dan aplikasi web berjalan di atas core ringan buatan kami sendiri, bukan CMS serba guna. Kode yang lebih ramping membuat halaman cepat terbuka dan jauh lebih sedikit celah untuk serangan injection. Core yang sama juga berjalan di shared hosting biasa, jadi biaya operasionalnya kecil.
+      text: Dashboard dan aplikasi web berjalan di atas core ringan buatan kami sendiri, bukan CMS serba guna. Kode yang lebih ramping membuat halaman cepat terbuka dan jauh lebih sedikit celah untuk serangan injection. Core yang sama juga berjalan di shared hosting biasa, sehingga tagihan hosting-nya tetap kecil.
     - title: Aplikasi native dan multi-platform
       text: Orang meninggalkan aplikasi yang lambat. Kami membangun aplikasi Android native dan multi-platform yang cepat dan andal, lengkap dengan dukungan offline dan animasi yang halus, sehingga tetap bisa dipakai di area dengan sinyal lemah.
     - title: Sinkronisasi real-time
