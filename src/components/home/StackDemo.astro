@@ -21,16 +21,16 @@ interface Props {
 const { lang } = Astro.props;
 const l = {
   en: {
-    gone: ['A server you manage', 'Worker processes, always on', 'Search cluster'],
+    gone: ['A server you have to manage', 'Programs that must run around the clock', 'A separate search server'],
     base: 'Database',
-    enough: 'Shared hosting with PHP, MySQL and one cron job',
-    label: 'Letting every user add fields they can filter on usually takes a server you manage, worker processes that are always on, a search cluster and a database. With StarDust, shared hosting with PHP, MySQL and one cron job is enough.',
+    enough: 'One shared hosting account',
+    label: 'Letting every user add fields they can filter on usually takes a server you have to manage, programs that run around the clock, a separate search server and a database. With StarDust, one shared hosting account is enough.',
   },
   id: {
-    gone: ['Server yang harus Anda kelola', 'Proses worker yang selalu berjalan', 'Search cluster'],
+    gone: ['Server yang harus Anda kelola', 'Program yang harus berjalan terus', 'Server pencarian terpisah'],
     base: 'Database',
-    enough: 'Shared hosting dengan PHP, MySQL, dan satu cron job',
-    label: 'Agar setiap pengguna bisa menambah field yang tetap bisa difilter, biasanya dibutuhkan server yang harus Anda kelola, proses worker yang selalu berjalan, search cluster, dan database. Dengan StarDust, shared hosting dengan PHP, MySQL, dan satu cron job sudah cukup.',
+    enough: 'Satu akun shared hosting',
+    label: 'Agar setiap pengguna bisa menambah field yang tetap bisa difilter, biasanya dibutuhkan server yang harus Anda kelola, program yang harus berjalan terus, server pencarian terpisah, dan database. Dengan StarDust, satu akun shared hosting sudah cukup.',
   },
 }[lang];
 ---
