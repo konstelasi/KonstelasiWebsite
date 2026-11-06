@@ -17,7 +17,7 @@ cases:
   heading: Where it shows
   items:
     - title: Fast web dashboards
-      text: Dashboards and web apps run on our own lean core instead of a general-purpose CMS. Less bloat means pages load quickly and there's far less surface for injection attacks.
+      text: Dashboards and web apps run on our own lean core instead of a general-purpose CMS. Less bloat means pages load quickly and there's far less surface for injection attacks. The same core runs on ordinary shared hosting, which keeps the hosting bill small.
     - title: Native and multi-platform apps
       text: People abandon slow apps. We build native Android and multi-platform apps for speed and reliability, with offline support and smooth animation, so the app still works where the signal is poor.
     - title: Real-time sync

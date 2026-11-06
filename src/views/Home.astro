@@ -3,7 +3,7 @@ import { Icon } from 'astro-icon/components';
 import Base from '../layouts/Base.astro';
 import Constellation from '../components/home/Constellation.astro';
 import ServiceSystem from '../components/home/ServiceSystem.astro';
-import SlotDemo from '../components/home/SlotDemo.astro';
+import StackDemo from '../components/home/StackDemo.astro';
 import ProductOrbit from '../components/home/ProductOrbit.astro';
 import { NODES, GROUND } from '../components/home/system-shape';
 import Status from '../components/Status.astro';
@@ -27,34 +27,32 @@ if (!stardust) throw new Error('the home page needs the stardust product entry')
 
 const copy = {
   en: {
-    statement: 'Software and AI, crafted to fit the way you work.',
-    lede: "Konstelasi is a software company in Yogyakarta. We build custom apps, automate the busywork between your tools, and set up AI that answers from your own data. The work is reliable, and the price makes sense.",
-    opening: "Tell us what you're building",
+    statement: 'We lower the barriers between your business and good software.',
+    lede: "Custom apps, automated busywork and AI that answers from your own data. You don't need the technical terms to start.",
+    opening: 'Tell us what you need',
     systemTitle: 'Everything we do connects',
     systemLede: 'Most projects start with one of these and grow into the next. Open one to see what it covers.',
     labTitle: 'Made in our lab',
     labLede: 'Open-source software we design ourselves, use in client work and maintain in public.',
     spotlightTitle: 'A closer look at StarDust',
-    spotlightLede: 'One product from the lab, shown at work.',
-    demoLabel: 'An animation of a StarDust write. The value "software" is copied from the JSON payload into the indexed slot column i_str_01, the value 120 into i_num_01, and the new row is marked as indexed.',
-    indexed: 'indexed',
+    spotlightLede: 'Letting every user add their own fields, and still filter on them quickly, often means running extra servers. StarDust does without them.',
     stardustMore: 'How StarDust works',
     workTitle: 'How we work',
     work: [
       {
         text: 'We start by listening. Before anyone writes code, we sit with the people who will use the software and learn how the work really gets done, including the workarounds nobody wrote down.',
-        note: "Discovery comes first. It is where most of a project's risk gets removed.",
+        note: "This first step removes most of a project's risk.",
       },
       {
-        text: 'Then we design the data and the flow of the system, because a schema is far cheaper to change on paper than in production.',
+        text: 'Then we design the data and the flow of the system, because a change on paper costs far less than the same change once people use the system.',
         note: 'Architecture before code.',
       },
       {
-        text: "We build in short sprints and show you working software along the way, so you can steer while steering is still easy. Deadlines matter to us. Getting it right matters more, and we plan so that we rarely have to choose.",
+        text: "We build in short stages and show you working software along the way, so you can steer while steering is still easy. Deadlines matter to us. Getting it right matters more, and we plan so that we rarely have to choose.",
         note: 'Regular demos, and no surprises at the end.',
       },
       {
-        text: "When it ships, we set up and harden the servers and hand over the complete source code. It is your software. If you'd like us to stay and look after it, we will, and if not, your team has everything it needs.",
+        text: "When it ships, we set up the servers, secure them, and hand over the complete source code. It is your software. If you'd like us to stay and look after it, we will, and if not, your team has everything it needs.",
         note: 'Full source handover, then support for as long as you want it.',
       },
     ],
@@ -63,30 +61,28 @@ const copy = {
     contactPage: 'All contact details',
   },
   id: {
-    statement: 'Software dan AI yang dirancang mengikuti cara Anda bekerja.',
-    lede: 'Konstelasi adalah perusahaan software di Yogyakarta. Kami membangun aplikasi custom, mengotomatiskan pekerjaan berulang di antara alat-alat Anda, dan memasang AI yang menjawab dari data Anda sendiri. Hasilnya andal, dengan harga yang masuk akal.',
-    opening: 'Ceritakan apa yang sedang Anda bangun',
+    statement: 'Kami mendekatkan software yang baik ke bisnis Anda.',
+    lede: 'Aplikasi custom, otomatisasi pekerjaan berulang, dan AI yang menjawab dari data Anda sendiri. Anda tidak perlu menguasai istilah teknisnya untuk memulai.',
+    opening: 'Ceritakan kebutuhan Anda',
     systemTitle: 'Semua yang kami kerjakan saling terhubung',
     systemLede: 'Kebanyakan proyek dimulai dari salah satunya, lalu berkembang ke yang berikutnya. Buka salah satu untuk melihat cakupannya.',
     labTitle: 'Dibuat di lab kami',
     labLede: 'Software open source yang kami rancang sendiri, kami pakai di proyek klien, dan kami rawat secara terbuka.',
     spotlightTitle: 'Lebih dekat dengan StarDust',
-    spotlightLede: 'Satu produk dari lab kami, saat sedang bekerja.',
-    demoLabel: 'Animasi proses tulis di StarDust. Nilai "software" disalin dari payload JSON ke kolom slot ber-index i_str_01, nilai 120 ke i_num_01, lalu baris barunya ditandai sudah ter-index.',
-    indexed: 'ter-index',
+    spotlightLede: 'Field yang bisa ditambah sendiri oleh setiap pengguna, dan tetap cepat difilter, sering kali berarti harus menjalankan server tambahan. StarDust tidak membutuhkannya.',
     stardustMore: 'Cara kerja StarDust',
     workTitle: 'Cara kami bekerja',
     work: [
       {
         text: 'Kami mulai dengan mendengarkan. Sebelum ada kode yang ditulis, kami duduk bersama orang-orang yang akan memakai software-nya dan mempelajari bagaimana pekerjaan itu benar-benar berjalan, termasuk jalan pintas yang tidak pernah dicatat siapa pun.',
-        note: 'Discovery selalu didahulukan. Di tahap inilah sebagian besar risiko proyek bisa dihilangkan.',
+        note: 'Langkah pertama inilah yang menghilangkan sebagian besar risiko proyek.',
       },
       {
-        text: 'Setelah itu kami merancang data dan alur sistemnya, karena mengubah skema di atas kertas jauh lebih murah daripada di production.',
+        text: 'Setelah itu kami merancang data dan alur sistemnya, karena perubahan di atas kertas jauh lebih murah daripada perubahan setelah sistemnya dipakai.',
         note: 'Arsitektur dulu, baru kode.',
       },
       {
-        text: 'Kami membangun dalam sprint pendek dan menunjukkan software yang sudah bisa dipakai di sepanjang jalan, supaya Anda bisa mengarahkan selagi masih mudah diarahkan. Tenggat waktu penting bagi kami. Hasil yang benar lebih penting lagi, dan kami merencanakan semuanya agar jarang harus memilih salah satu.',
+        text: 'Kami membangun dalam tahap-tahap pendek dan menunjukkan software yang sudah bisa dipakai di sepanjang jalan, supaya Anda bisa mengarahkan selagi masih mudah diarahkan. Tenggat waktu penting bagi kami. Hasil yang benar lebih penting lagi, dan kami merencanakan semuanya agar jarang harus memilih salah satu.',
         note: 'Demo berkala, tanpa kejutan di akhir.',
       },
       {
@@ -172,7 +168,7 @@ const constellationLabels = services.map((s) => s.data.name) as [string, string,
             <Icon name="lucide:arrow-right" aria-hidden="true" />
           </a>
         </div>
-        <SlotDemo label={copy.demoLabel} indexed={copy.indexed} />
+        <StackDemo lang={lang} />
       </article>
     </div>
   </section>

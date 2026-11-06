@@ -36,6 +36,7 @@ If a field's index isn't ready yet, or slot capacity runs low for a moment, the 
 - Twelve filter operators with full AND, OR and NOT, compiled to indexed SQL.
 - Tenant scoping on every query, at the SQL level.
 - Background workers that provision index capacity, backfill new fields, reclaim freed slots and stream exports, so nobody hand-tunes the schema.
+- Runs on shared hosting. Where a host allows a cron job but no long-running process, `bin/stardust tick` does the same work as one time-limited pass.
 - Cursor pagination, built for datasets too large to page through with offsets.
 - MySQL 8.0.13 or later, Percona Server, and MariaDB 10.11 or later. The engine detects which one it's talking to and rejects older versions at startup.
 
