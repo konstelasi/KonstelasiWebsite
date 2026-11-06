@@ -2,6 +2,11 @@
 
 Guidance for AI coding agents in this repository. What the site is, how it's built and how it deploys are in [README.md](README.md).
 
+@.agent/rules/core.md
+@.agent/rules/website.md
+
+`core.md` is synced from agent-rules, so never edit it or the guides beside it. `website.md` holds this repository's own rules and wins on a conflict.
+
 ## This repository
 
 - Astro, static output only. `npm run build` writes `dist/`, which Apache on a cPanel host serves as plain files. Nothing may need a Node runtime at request time.
