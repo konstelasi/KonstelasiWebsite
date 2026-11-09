@@ -2,7 +2,7 @@
 name: StarDust
 order: 1
 status: ongoing
-version: 0.3.0-alpha.1
+version: 0.3.0-alpha.2
 summary: Dynamic field tanpa skema untuk PHP, tetap bisa difilter lewat index bawaan MySQL atau MariaDB tanpa search cluster terpisah.
 lead: StarDust adalah library PHP yang tidak terikat framework. Setiap tenant atau pengguna bisa membuat field sendiri, dan field itu tetap bisa difilter lewat index database sungguhan, bukan dengan memindai seluruh tabel.
 source: https://github.com/damarbob/StarDust
