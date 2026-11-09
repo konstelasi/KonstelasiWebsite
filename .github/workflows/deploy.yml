@@ -8,10 +8,14 @@ name: Deploy
 on:
   push:
     branches: [main]
-    # A change to documentation alone changes nothing on the site, so it does
-    # not deploy. A push that also touches code still does.
+    # A change to the repository's own notes changes nothing on the site, so
+    # it does not deploy. The Markdown under src/content is page copy, so a
+    # change there does. A push that also touches code deploys too.
     paths-ignore:
-      - '**.md'
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+      - '.agent/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
