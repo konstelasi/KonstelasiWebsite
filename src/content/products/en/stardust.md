@@ -2,7 +2,7 @@
 name: StarDust
 order: 1
 status: ongoing
-version: 0.3.0-alpha.1
+version: 0.3.0-alpha.2
 summary: Schemaless dynamic fields for PHP, filterable through the native indexes of MySQL or MariaDB, with no separate search cluster.
 lead: StarDust is a framework-neutral PHP library that lets every tenant or user define their own fields, and still filter them through real database indexes instead of a table scan.
 source: https://github.com/damarbob/StarDust
